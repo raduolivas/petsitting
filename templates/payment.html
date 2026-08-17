@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Payment – Pawbnb{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-12">
+    <div class="bg-white rounded-2xl border border-stone-100 p-8 shadow-sm">
+        <h1 class="text-xl font-bold mb-6">Complete payment</h1>
+
+        <div class="bg-stone-50 rounded-xl p-4 mb-6 space-y-2 text-sm">
+            <div class="flex justify-between">
+                <span class="text-stone-500">Service</span>
+                <span class="font-medium capitalize">{{ booking.service_type }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-stone-500">Dates</span>
+                <span>{{ booking.start_date.strftime('%d %b') }}{% if booking.end_date and booking.end_date != booking.start_date %} – {{ booking.end_date.strftime('%d %b') }}{% endif %}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-stone-500">Dog</span>
+                <span>{{ booking.dog_name }}</span>
+            </div>
+            <div class="flex justify-between text-base font-semibold pt-2 border-t border-stone-200">
+                <span>Total</span>
+                <span class="text-paw-600">€{{ '%.2f'|format(booking.total_price) }}</span>
+            </div>
+        </div>
+
+        {% if use_stripe %}
+        <!-- Real Stripe Checkout -->
+        <form method="POST" class="mb-4">
+            <input type="hidden" name="method" value="stripe">
+            <button type="submit" class="w-full bg-[#635BFF] hover:bg-[#5851e6] text-white font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.759 6.06 2.098c-1.534 1.344-2.333 3.221-2.333 5.355 0 3.982 2.498 5.808 6.582 7.287 2.664.95 3.53 1.514 3.53 2.66 0 1.023-.855 1.603-2.328 1.603-1.972 0-4.592-.921-6.46-2.123l-.9 5.555C9.25 22.99 11.93 24 14.846 24c2.474 0 4.567-.764 6.026-2.143 1.534-1.409 2.317-3.43 2.317-5.702 0-4.114-2.589-5.951-6.713-7.005h-.5z"/></svg>
+                Pay securely with Stripe
+            </button>
+        </form>
+        <p class="text-xs text-center text-stone-400 mb-4">or</p>
+        {% endif %}
+
+        <!-- Demo / Mock payment always available -->
+        <form method="POST">
+            <input type="hidden" name="method" value="mock">
+            <div class="space-y-3 mb-4 opacity-80">
+                <div>
+                    <label class="block text-xs font-medium text-stone-500 mb-1">Card number (demo)</label>
+                    <input type="text" value="4242 4242 4242 4242" disabled class="w-full border border-stone-200 rounded-lg px-3 py-2 bg-stone-50 text-stone-500 text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-stone-500 mb-1">Expiry</label>
+                        <input type="text" value="12/28" disabled class="w-full border border-stone-200 rounded-lg px-3 py-2 bg-stone-50 text-stone-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-stone-500 mb-1">CVC</label>
+                        <input type="text" value="123" disabled class="w-full border border-stone-200 rounded-lg px-3 py-2 bg-stone-50 text-stone-500 text-sm">
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="w-full bg-paw-500 hover:bg-paw-600 text-white font-semibold py-3 rounded-xl transition">
+                Pay €{{ '%.2f'|format(booking.total_price) }} (Demo)
+            </button>
+        </form>
+
+        <p class="text-xs text-stone-400 text-center mt-4">
+            {% if use_stripe %}
+            Stripe is configured. Use the purple button for real test payments (card 4242…).
+            {% else %}
+            Stripe keys not set → using demo payment. To enable real payments, set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY.
+            {% endif %}
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Pawbnb{% endblock %} – Dog Care Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        paw: {
+                            50: '#fef7ee',
+                            100: '#fdedd6',
+                            200: '#fad7ac',
+                            300: '#f6ba77',
+                            400: '#f19340',
+                            500: '#ed751a',
+                            600: '#de5b10',
+                            700: '#b84410',
+                            800: '#933615',
+                            900: '#772e14',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .star { color: #f59e0b; }
+        .leaflet-container { z-index: 0; }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800 min-h-screen flex flex-col">
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-stone-200 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6">
+            <div class="flex justify-between items-center h-16">
+                <a href="{{ url_for('index') }}" class="flex items-center gap-2 font-bold text-xl text-paw-600">
+                    <span class="text-2xl">🐾</span> Pawbnb
+                </a>
+                <div class="hidden md:flex items-center gap-6 text-sm font-medium">
+                    <a href="{{ url_for('search') }}" class="hover:text-paw-600 transition">Find a Sitter</a>
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('dashboard') }}" class="hover:text-paw-600 transition">Dashboard</a>
+                        {% if current_user.role == 'sitter' %}
+                            <a href="{{ url_for('edit_profile') }}" class="hover:text-paw-600 transition">My Profile</a>
+                        {% endif %}
+                        <span class="text-stone-500">Hi, {{ current_user.name.split()[0] }}</span>
+                        <a href="{{ url_for('logout') }}" class="text-stone-500 hover:text-red-600">Logout</a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="hover:text-paw-600 transition">Log in</a>
+                        <a href="{{ url_for('register') }}" class="bg-paw-500 text-white px-4 py-2 rounded-full hover:bg-paw-600 transition">Sign up</a>
+                    {% endif %}
+                </div>
+                <!-- Mobile menu button (simple) -->
+                <div class="md:hidden">
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('dashboard') }}" class="text-paw-600 font-medium">Dashboard</a>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="text-paw-600 font-medium">Log in</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="max-w-6xl mx-auto px-4 mt-4 space-y-2">
+                {% for category, message in messages %}
+                    <div class="px-4 py-3 rounded-lg text-sm
+                        {% if category == 'error' %}bg-red-50 text-red-700 border border-red-200
+                        {% elif category == 'success' %}bg-green-50 text-green-700 border border-green-200
+                        {% else %}bg-blue-50 text-blue-700 border border-blue-200{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main content -->
+    <main class="flex-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-stone-800 text-stone-300 mt-16">
+        <div class="max-w-6xl mx-auto px-4 py-10 grid md:grid-cols-3 gap-8 text-sm">
+            <div>
+                <div class="flex items-center gap-2 font-bold text-white text-lg mb-3">
+                    <span>🐾</span> Pawbnb
+                </div>
+                <p class="text-stone-400">The Airbnb for dogs. Find trusted sitters or offer your love to pets in need.</p>
+            </div>
+            <div>
+                <h4 class="font-semibold text-white mb-3">For Pet Owners</h4>
+                <ul class="space-y-1 text-stone-400">
+                    <li><a href="{{ url_for('search') }}" class="hover:text-white">Search sitters</a></li>
+                    <li><a href="{{ url_for('register') }}" class="hover:text-white">Create account</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-semibold text-white mb-3">For Sitters</h4>
+                <ul class="space-y-1 text-stone-400">
+                    <li><a href="{{ url_for('register') }}" class="hover:text-white">Become a sitter</a></li>
+                    <li><a href="{{ url_for('login') }}" class="hover:text-white">Manage availability</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="border-t border-stone-700 text-center text-xs text-stone-500 py-4">
+            © 2026 Pawbnb MVP · Built with ❤️ for dogs
+        </div>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

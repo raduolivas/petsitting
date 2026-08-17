@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Leave a Review – Pawbnb{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-12">
+    <div class="bg-white rounded-2xl border border-stone-100 p-8">
+        <h1 class="text-xl font-bold mb-2">Leave a review</h1>
+        <p class="text-stone-500 text-sm mb-6">
+            How was your experience with {{ booking.sitter.user.name }}?
+        </p>
+
+        <form method="POST" class="space-y-5">
+            <div>
+                <label class="block text-sm font-medium mb-2">Rating</label>
+                <div class="flex gap-2">
+                    {% for i in range(1,6) %}
+                    <label class="cursor-pointer">
+                        <input type="radio" name="rating" value="{{ i }}" class="peer sr-only" {% if i == 5 %}checked{% endif %}>
+                        <span class="text-3xl text-stone-300 peer-checked:text-yellow-400 hover:text-yellow-300 transition">★</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">Comment</label>
+                <textarea name="comment" rows="4" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300" placeholder="Share details about the care, communication, location..."></textarea>
+            </div>
+
+            <button type="submit" class="w-full bg-paw-500 hover:bg-paw-600 text-white font-semibold py-3 rounded-xl transition">
+                Submit review
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Sign up – Pawbnb{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto px-4 py-12">
+    <div class="bg-white rounded-2xl shadow-sm border border-stone-100 p-8">
+        <h1 class="text-2xl font-bold text-center mb-2">Create your account</h1>
+        <p class="text-center text-stone-500 text-sm mb-8">Join as a pet owner or become a sitter</p>
+
+        <form method="POST" class="space-y-5">
+            <div>
+                <label class="block text-sm font-medium mb-1">I want to…</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="cursor-pointer">
+                        <input type="radio" name="role" value="owner" class="peer sr-only" checked>
+                        <div class="border-2 border-stone-200 peer-checked:border-paw-500 peer-checked:bg-paw-50 rounded-xl p-4 text-center transition">
+                            <div class="text-2xl mb-1">🐕</div>
+                            <div class="font-medium text-sm">Find a sitter</div>
+                            <div class="text-xs text-stone-500">I’m a pet owner</div>
+                        </div>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="role" value="sitter" class="peer sr-only">
+                        <div class="border-2 border-stone-200 peer-checked:border-paw-500 peer-checked:bg-paw-50 rounded-xl p-4 text-center transition">
+                            <div class="text-2xl mb-1">🏡</div>
+                            <div class="font-medium text-sm">Offer care</div>
+                            <div class="text-xs text-stone-500">I want to be a sitter</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">Full name</label>
+                <input type="text" name="name" required class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300 focus:border-paw-400">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Email</label>
+                <input type="email" name="email" required class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300 focus:border-paw-400">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Phone (optional)</label>
+                <input type="tel" name="phone" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300 focus:border-paw-400">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Password</label>
+                <input type="password" name="password" required minlength="6" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300 focus:border-paw-400">
+            </div>
+
+            <button type="submit" class="w-full bg-paw-500 hover:bg-paw-600 text-white font-semibold py-3 rounded-xl transition">
+                Create account
+            </button>
+        </form>
+
+        <p class="text-center text-sm text-stone-500 mt-6">
+            Already have an account? <a href="{{ url_for('login') }}" class="text-paw-600 font-medium hover:underline">Log in</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

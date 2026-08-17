@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Find Sitters – Pawbnb{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold mb-2">Find a dog sitter</h1>
+    <p class="text-stone-500 text-sm mb-6">Search by city, country or service · Explore the map</p>
+
+    <!-- Filters -->
+    <form method="GET" class="bg-white rounded-2xl border border-stone-100 p-4 mb-8 flex flex-wrap gap-3 items-end shadow-sm">
+        <div class="flex-1 min-w-[140px]">
+            <label class="block text-xs font-medium text-stone-500 mb-1">City</label>
+            <input type="text" name="city" value="{{ city }}" placeholder="Lisbon, Paris, Berlin..."
+                   class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-paw-300">
+        </div>
+        <div class="min-w-[130px]">
+            <label class="block text-xs font-medium text-stone-500 mb-1">Country</label>
+            <select name="country" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-paw-300">
+                <option value="">Any country</option>
+                <option value="Portugal" {% if country == 'Portugal' %}selected{% endif %}>Portugal</option>
+                <option value="Spain" {% if country == 'Spain' %}selected{% endif %}>Spain</option>
+                <option value="France" {% if country == 'France' %}selected{% endif %}>France</option>
+                <option value="Italy" {% if country == 'Italy' %}selected{% endif %}>Italy</option>
+                <option value="Germany" {% if country == 'Germany' %}selected{% endif %}>Germany</option>
+            </select>
+        </div>
+        <div class="min-w-[140px]">
+            <label class="block text-xs font-medium text-stone-500 mb-1">Service</label>
+            <select name="service" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-paw-300">
+                <option value="">Any service</option>
+                <option value="boarding" {% if service == 'boarding' %}selected{% endif %}>Boarding (overnight)</option>
+                <option value="walking" {% if service == 'walking' %}selected{% endif %}>Walking</option>
+                <option value="daycare" {% if service == 'daycare' %}selected{% endif %}>Daycare</option>
+            </select>
+        </div>
+        <div class="min-w-[100px]">
+            <label class="block text-xs font-medium text-stone-500 mb-1">Min rating</label>
+            <select name="min_rating" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-paw-300">
+                <option value="">Any</option>
+                <option value="4">4+</option>
+                <option value="4.5">4.5+</option>
+            </select>
+        </div>
+        <button type="submit" class="bg-paw-500 hover:bg-paw-600 text-white px-5 py-2 rounded-lg text-sm font-semibold transition">
+            Search
+        </button>
+    </form>
+
+    <div class="grid lg:grid-cols-2 gap-6">
+        <!-- List -->
+        <div class="space-y-3 max-h-[620px] overflow-y-auto pr-1">
+            <p class="text-sm text-stone-500 mb-2">{{ sitters|length }} sitter{{ 's' if sitters|length != 1 else '' }} found</p>
+            {% for s in sitters %}
+            <a href="{{ url_for('sitter_profile', profile_id=s.id) }}"
+               class="block bg-white rounded-xl border border-stone-100 p-4 hover:border-paw-300 hover:shadow-md transition group">
+                <div class="flex gap-4">
+                    <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-paw-100 to-orange-100 flex items-center justify-center text-2xl flex-shrink-0">
+                        🏡
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex justify-between items-start gap-2">
+                            <div>
+                                <h3 class="font-semibold group-hover:text-paw-600 transition">{{ s.user.name }}</h3>
+                                <p class="text-sm text-stone-500">{{ s.city }}{% if s.country %}, {{ s.country }}{% endif %}</p>
+                            </div>
+                            <div class="text-sm flex items-center gap-1 flex-shrink-0">
+                                <span class="star">★</span>
+                                <span class="font-medium">{{ '%.1f'|format(s.avg_rating) if s.avg_rating else 'New' }}</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-stone-600 mt-1 line-clamp-1">{{ (s.bio or '')[:90] }}{% if s.bio and s.bio|length > 90 %}…{% endif %}</p>
+                        <div class="mt-2 flex flex-wrap gap-1.5 text-xs">
+                            {% if s.offers_boarding %}<span class="bg-paw-50 text-paw-700 px-2 py-0.5 rounded-full">Boarding €{{ '%.0f'|format(s.price_boarding_day) }}</span>{% endif %}
+                            {% if s.offers_walking %}<span class="bg-green-50 text-green-700 px-2 py-0.5 rounded-full">Walk €{{ '%.0f'|format(s.price_walking_hour) }}/h</span>{% endif %}
+                            {% if s.offers_daycare %}<span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">Daycare €{{ '%.0f'|format(s.price_daycare_day) }}</span>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </a>
+            {% else %}
+            <div class="text-center py-16 text-stone-500 bg-white rounded-2xl border border-dashed border-stone-200">
+                <div class="text-4xl mb-3">🔍</div>
+                <p class="font-medium">No sitters found</p>
+                <p class="text-sm mt-1">Try a different city or country, or become the first in your area!</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Map -->
+        <div class="bg-white rounded-2xl border border-stone-100 overflow-hidden shadow-sm">
+            <div id="map" class="w-full h-[500px] lg:h-full min-h-[500px]"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const map = L.map('map').setView([46.0, 2.0], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+        maxZoom: 18
+    }).addTo(map);
+
+    const pawIcon = L.divIcon({
+        html: '<div style="background:#ed751a;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:16px;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.35)">🐾</div>',
+        className: '',
+        iconSize: [34, 34],
+        iconAnchor: [17, 17]
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    let apiUrl = '/api/sitters?';
+    if (params.get('city')) apiUrl += 'city=' + encodeURIComponent(params.get('city')) + '&';
+    if (params.get('country')) apiUrl += 'country=' + encodeURIComponent(params.get('country')) + '&';
+
+    fetch(apiUrl)
+        .then(r => r.json())
+        .then(sitters => {
+            const bounds = [];
+            sitters.forEach(s => {
+                if (s.lat && s.lng) {
+                    const marker = L.marker([s.lat, s.lng], {icon: pawIcon}).addTo(map);
+                    marker.bindPopup(`
+                        <div style="min-width:160px">
+                            <strong>${s.name}</strong><br>
+                            <span style="color:#666">${s.city}${s.country ? ', ' + s.country : ''}</span><br>
+                            ★ ${s.rating ? s.rating.toFixed(1) : 'New'}<br>
+                            <a href="${s.url}" style="color:#ed751a;font-weight:600">View profile →</a>
+                        </div>
+                    `);
+                    bounds.push([s.lat, s.lng]);
+                }
+            });
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, {padding: [40, 40], maxZoom: 12});
+            }
+        });
+</script>
+{% endblock %}

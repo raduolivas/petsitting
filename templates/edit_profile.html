@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Edit Profile – Pawbnb{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold mb-6">Your sitter profile</h1>
+
+    <form method="POST" class="bg-white rounded-2xl border border-stone-100 p-6 space-y-6">
+        <div>
+            <label class="block text-sm font-medium mb-1">Bio</label>
+            <textarea name="bio" rows="4" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300" placeholder="Tell pet owners about yourself, your experience, and why dogs love staying with you...">{{ profile.bio or '' }}</textarea>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">City</label>
+                <input type="text" name="city" value="{{ profile.city or '' }}" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Country</label>
+                <select name="country" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">
+                    <option value="Portugal" {% if profile.country == 'Portugal' %}selected{% endif %}>Portugal</option>
+                    <option value="Spain" {% if profile.country == 'Spain' %}selected{% endif %}>Spain</option>
+                    <option value="France" {% if profile.country == 'France' %}selected{% endif %}>France</option>
+                    <option value="Italy" {% if profile.country == 'Italy' %}selected{% endif %}>Italy</option>
+                    <option value="Germany" {% if profile.country == 'Germany' %}selected{% endif %}>Germany</option>
+                    <option value="Other" {% if profile.country == 'Other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Address / Area</label>
+                <input type="text" name="address" value="{{ profile.address or '' }}" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">
+            </div>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Latitude (for map)</label>
+                <input type="number" step="any" name="lat" value="{{ profile.lat or '' }}" placeholder="e.g. 38.7223" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Longitude</label>
+                <input type="number" step="any" name="lng" value="{{ profile.lng or '' }}" placeholder="e.g. -9.1393" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">
+            </div>
+        </div>
+        <p class="text-xs text-stone-400 -mt-4">Tip: Use Google Maps → right-click → coordinates</p>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">Services you offer</label>
+            <div class="space-y-2">
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" name="offers_boarding" {% if profile.offers_boarding %}checked{% endif %} class="rounded text-paw-500 focus:ring-paw-400">
+                    <span>🏠 Boarding (dog stays at your home)</span>
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" name="offers_walking" {% if profile.offers_walking %}checked{% endif %} class="rounded text-paw-500 focus:ring-paw-400">
+                    <span>🚶 Walking</span>
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" name="offers_daycare" {% if profile.offers_daycare %}checked{% endif %} class="rounded text-paw-500 focus:ring-paw-400">
+                    <span>☀️ Daycare</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="grid sm:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Boarding €/day</label>
+                <input type="number" step="0.5" name="price_boarding_day" value="{{ profile.price_boarding_day or 0 }}" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Walking €/hour</label>
+                <input type="number" step="0.5" name="price_walking_hour" value="{{ profile.price_walking_hour or 0 }}" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Daycare €/day</label>
+                <input type="number" step="0.5" name="price_daycare_day" value="{{ profile.price_daycare_day or 0 }}" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">
+            </div>
+        </div>
+
+        <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Max dogs at once</label>
+                <input type="number" name="max_dogs" value="{{ profile.max_dogs or 1 }}" min="1" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Years of experience</label>
+                <input type="number" name="years_experience" value="{{ profile.years_experience or 0 }}" min="0" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-1">Home type</label>
+            <select name="home_type" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">
+                <option value="">Select...</option>
+                <option value="apartment" {% if profile.home_type == 'apartment' %}selected{% endif %}>Apartment</option>
+                <option value="house" {% if profile.home_type == 'house' %}selected{% endif %}>House</option>
+                <option value="farm" {% if profile.home_type == 'farm' %}selected{% endif %}>Farm / countryside</option>
+            </select>
+        </div>
+
+        <div class="space-y-2">
+            <label class="flex items-center gap-2">
+                <input type="checkbox" name="has_yard" {% if profile.has_yard %}checked{% endif %} class="rounded text-paw-500">
+                <span>Has a yard / garden</span>
+            </label>
+            <label class="flex items-center gap-2">
+                <input type="checkbox" name="accepts_puppies" {% if profile.accepts_puppies %}checked{% endif %} class="rounded text-paw-500">
+                <span>Accepts puppies</span>
+            </label>
+            <label class="flex items-center gap-2">
+                <input type="checkbox" name="accepts_large_dogs" {% if profile.accepts_large_dogs %}checked{% endif %} class="rounded text-paw-500">
+                <span>Accepts large dogs</span>
+            </label>
+            <label class="flex items-center gap-2">
+                <input type="checkbox" name="is_active" {% if profile.is_active %}checked{% endif %} class="rounded text-paw-500">
+                <span>Profile is active (visible in search)</span>
+            </label>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-1">Availability notes</label>
+            <textarea name="availability_notes" rows="2" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300" placeholder="e.g. Available weekdays, prefer weekends, etc.">{{ profile.availability_notes or '' }}</textarea>
+        </div>
+
+        <button type="submit" class="w-full bg-paw-500 hover:bg-paw-600 text-white font-semibold py-3 rounded-xl transition">
+            Save profile
+        </button>
+    </form>
+</div>
+{% endblock %}
