@@ -51,7 +51,7 @@
         <div class="space-y-3 max-h-[620px] overflow-y-auto pr-1">
             <p class="text-sm text-stone-500 mb-2">{{ sitters|length }} sitter{{ 's' if sitters|length != 1 else '' }} found</p>
             {% for s in sitters %}
-            <a href="{{ url_for('sitter_profile', profile_id=s.id) }}"
+            <a href="{{ url_for('sitters.profile', profile_id=s.id) }}"
                class="block bg-white rounded-xl border border-stone-100 p-4 hover:border-paw-300 hover:shadow-md transition group">
                 <div class="flex gap-4">
                     <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-paw-100 to-orange-100 flex items-center justify-center text-2xl flex-shrink-0">

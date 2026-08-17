@@ -8,7 +8,7 @@
             <h1 class="text-2xl font-bold">Hello, {{ current_user.name.split()[0] }} 👋</h1>
             <p class="text-stone-500">Pet owner dashboard</p>
         </div>
-        <a href="{{ url_for('search') }}" class="bg-paw-500 hover:bg-paw-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold transition">
+        <a href="{{ url_for('main.search') }}" class="bg-paw-500 hover:bg-paw-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold transition">
             Find a sitter
         </a>
     </div>
@@ -18,7 +18,7 @@
     {% if bookings %}
     <div class="space-y-4">
         {% for b in bookings %}
-        <a href="{{ url_for('booking_detail', booking_id=b.id) }}" class="block bg-white rounded-xl border border-stone-100 p-5 hover:border-paw-300 hover:shadow-md transition">
+        <a href="{{ url_for('bookings.detail', booking_id=b.id) }}" class="block bg-white rounded-xl border border-stone-100 p-5 hover:border-paw-300 hover:shadow-md transition">
             <div class="flex flex-wrap justify-between gap-3">
                 <div>
                     <div class="font-medium">{{ b.sitter.user.name }} · <span class="capitalize">{{ b.service_type }}</span></div>
@@ -50,7 +50,7 @@
     <div class="bg-white rounded-xl border border-dashed border-stone-200 p-12 text-center text-stone-500">
         <div class="text-4xl mb-3">🐾</div>
         <p>No bookings yet.</p>
-        <a href="{{ url_for('search') }}" class="inline-block mt-4 text-paw-600 font-medium hover:underline">Find a sitter →</a>
+        <a href="{{ url_for('main.search') }}" class="inline-block mt-4 text-paw-600 font-medium hover:underline">Find a sitter →</a>
     </div>
     {% endif %}
 </div>

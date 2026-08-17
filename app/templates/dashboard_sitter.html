@@ -9,11 +9,11 @@
             <p class="text-stone-500">Sitter dashboard</p>
         </div>
         <div class="flex gap-3">
-            <a href="{{ url_for('edit_profile') }}" class="bg-white border border-stone-200 hover:border-paw-300 text-stone-700 px-5 py-2.5 rounded-full text-sm font-semibold transition">
+            <a href="{{ url_for('sitters.edit_profile') }}" class="bg-white border border-stone-200 hover:border-paw-300 text-stone-700 px-5 py-2.5 rounded-full text-sm font-semibold transition">
                 Edit profile
             </a>
             {% if profile and profile.is_active %}
-            <a href="{{ url_for('sitter_profile', profile_id=profile.id) }}" class="bg-paw-500 hover:bg-paw-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold transition">
+            <a href="{{ url_for('sitters.profile', profile_id=profile.id) }}" class="bg-paw-500 hover:bg-paw-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold transition">
                 View public profile
             </a>
             {% endif %}
@@ -52,7 +52,7 @@
     {% else %}
     <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-5 mb-8">
         <p class="text-yellow-800">Complete your sitter profile to start receiving bookings.</p>
-        <a href="{{ url_for('edit_profile') }}" class="inline-block mt-2 text-paw-600 font-medium hover:underline">Set up profile →</a>
+        <a href="{{ url_for('sitters.edit_profile') }}" class="inline-block mt-2 text-paw-600 font-medium hover:underline">Set up profile →</a>
     </div>
     {% endif %}
 
@@ -61,7 +61,7 @@
     {% if bookings %}
     <div class="space-y-4">
         {% for b in bookings %}
-        <a href="{{ url_for('booking_detail', booking_id=b.id) }}" class="block bg-white rounded-xl border border-stone-100 p-5 hover:border-paw-300 hover:shadow-md transition">
+        <a href="{{ url_for('bookings.detail', booking_id=b.id) }}" class="block bg-white rounded-xl border border-stone-100 p-5 hover:border-paw-300 hover:shadow-md transition">
             <div class="flex flex-wrap justify-between gap-3">
                 <div>
                     <div class="font-medium">{{ b.owner.name }} · <span class="capitalize">{{ b.service_type }}</span></div>

@@ -14,6 +14,7 @@
         {% endif %}
 
         <form method="POST" class="space-y-5" id="book-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div>
                 <label class="block text-sm font-medium mb-1">Service type</label>
                 <select name="service_type" required class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">

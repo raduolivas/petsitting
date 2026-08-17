@@ -30,6 +30,7 @@
 
         {% if use_stripe %}
         <form method="POST" class="mb-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="method" value="stripe">
             <button type="submit" class="w-full bg-[#635BFF] hover:bg-[#5851e6] text-white font-semibold py-3 rounded-xl transition">
                 Authorize with Stripe
@@ -39,6 +40,7 @@
         {% endif %}
 
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="method" value="mock">
             <button type="submit" class="w-full bg-paw-500 hover:bg-paw-600 text-white font-semibold py-3 rounded-xl transition">
                 Authorize €{{ '%.2f'|format(booking.total_price) }} (Demo)

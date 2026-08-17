@@ -10,6 +10,7 @@
         </p>
 
         <form method="POST" class="space-y-5">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div>
                 <label class="block text-sm font-medium mb-2">Rating</label>
                 <div class="flex gap-2">

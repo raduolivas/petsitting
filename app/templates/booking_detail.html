@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="max-w-3xl mx-auto px-4 py-8">
-    <a href="{{ url_for('dashboard') }}" class="text-sm text-paw-600 hover:underline mb-4 inline-block">← Back to dashboard</a>
+    <a href="{{ url_for('main.dashboard') }}" class="text-sm text-paw-600 hover:underline mb-4 inline-block">← Back to dashboard</a>
 
     <div class="bg-white rounded-2xl border border-stone-100 p-6 mb-6 shadow-sm">
         <div class="flex flex-wrap justify-between items-start gap-4">
@@ -59,12 +59,14 @@
             {% set is_sitter = current_user.sitter_profile and current_user.sitter_profile.id == booking.sitter_id %}
 
             {% if is_sitter and booking.status == 'pending' %}
-            <form method="POST" action="{{ url_for('accept_booking', booking_id=booking.id) }}">
+            <form method="POST" action="{{ url_for('bookings.accept', booking_id=booking.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="bg-green-500 hover:bg-green-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition">
                     ✓ Accept request
                 </button>
             </form>
-            <form method="POST" action="{{ url_for('decline_booking', booking_id=booking.id) }}" onsubmit="return confirm('Decline this request? The payment hold will be released.')">
+            <form method="POST" action="{{ url_for('bookings.decline', booking_id=booking.id) }}" onsubmit="return confirm('Decline this request? The payment hold will be released.')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition">
                     ✕ Decline (refund)
                 </button>
@@ -72,7 +74,8 @@
             {% endif %}
 
             {% if booking.status == 'confirmed' %}
-            <form method="POST" action="{{ url_for('complete_booking', booking_id=booking.id) }}">
+            <form method="POST" action="{{ url_for('bookings.complete', booking_id=booking.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
                     Mark as completed
                 </button>
@@ -80,13 +83,13 @@
             {% endif %}
 
             {% if booking.status == 'completed' and current_user.id == booking.owner_id and not booking.review %}
-            <a href="{{ url_for('leave_review', booking_id=booking.id) }}" class="bg-paw-500 hover:bg-paw-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+            <a href="{{ url_for('bookings.leave_review', booking_id=booking.id) }}" class="bg-paw-500 hover:bg-paw-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
                 Leave a review
             </a>
             {% endif %}
 
             {% if booking.payment_status == 'unpaid' and current_user.id == booking.owner_id %}
-            <a href="{{ url_for('payment', booking_id=booking.id) }}" class="bg-green-500 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+            <a href="{{ url_for('bookings.payment', booking_id=booking.id) }}" class="bg-green-500 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
                 Authorize payment
             </a>
             {% endif %}
@@ -132,7 +135,8 @@
             {% endif %}
         </div>
 
-        <form method="POST" action="{{ url_for('send_message', booking_id=booking.id) }}" class="p-4 border-t border-stone-100 flex gap-2">
+        <form method="POST" action="{{ url_for('bookings.send_message', booking_id=booking.id) }}" class="p-4 border-t border-stone-100 flex gap-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="text" name="content" required placeholder="Type a message..."
                    class="flex-1 border border-stone-200 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-paw-300"
                    autocomplete="off">

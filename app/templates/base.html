@@ -39,29 +39,29 @@
     <nav class="bg-white border-b border-stone-200 sticky top-0 z-50">
         <div class="max-w-6xl mx-auto px-4 sm:px-6">
             <div class="flex justify-between items-center h-16">
-                <a href="{{ url_for('index') }}" class="flex items-center gap-2 font-bold text-xl text-paw-600">
+                <a href="{{ url_for('main.index') }}" class="flex items-center gap-2 font-bold text-xl text-paw-600">
                     <span class="text-2xl">🐾</span> Pawbnb
                 </a>
                 <div class="hidden md:flex items-center gap-6 text-sm font-medium">
-                    <a href="{{ url_for('search') }}" class="hover:text-paw-600 transition">Find a Sitter</a>
+                    <a href="{{ url_for('main.search') }}" class="hover:text-paw-600 transition">Find a Sitter</a>
                     {% if current_user.is_authenticated %}
-                        <a href="{{ url_for('dashboard') }}" class="hover:text-paw-600 transition">Dashboard</a>
+                        <a href="{{ url_for('main.dashboard') }}" class="hover:text-paw-600 transition">Dashboard</a>
                         {% if current_user.role == 'sitter' %}
-                            <a href="{{ url_for('edit_profile') }}" class="hover:text-paw-600 transition">My Profile</a>
+                            <a href="{{ url_for('sitters.edit_profile') }}" class="hover:text-paw-600 transition">My Profile</a>
                         {% endif %}
                         <span class="text-stone-500">Hi, {{ current_user.name.split()[0] }}</span>
-                        <a href="{{ url_for('logout') }}" class="text-stone-500 hover:text-red-600">Logout</a>
+                        <a href="{{ url_for('auth.logout') }}" class="text-stone-500 hover:text-red-600">Logout</a>
                     {% else %}
-                        <a href="{{ url_for('login') }}" class="hover:text-paw-600 transition">Log in</a>
-                        <a href="{{ url_for('register') }}" class="bg-paw-500 text-white px-4 py-2 rounded-full hover:bg-paw-600 transition">Sign up</a>
+                        <a href="{{ url_for('auth.login') }}" class="hover:text-paw-600 transition">Log in</a>
+                        <a href="{{ url_for('auth.register') }}" class="bg-paw-500 text-white px-4 py-2 rounded-full hover:bg-paw-600 transition">Sign up</a>
                     {% endif %}
                 </div>
                 <!-- Mobile menu button (simple) -->
                 <div class="md:hidden">
                     {% if current_user.is_authenticated %}
-                        <a href="{{ url_for('dashboard') }}" class="text-paw-600 font-medium">Dashboard</a>
+                        <a href="{{ url_for('main.dashboard') }}" class="text-paw-600 font-medium">Dashboard</a>
                     {% else %}
-                        <a href="{{ url_for('login') }}" class="text-paw-600 font-medium">Log in</a>
+                        <a href="{{ url_for('auth.login') }}" class="text-paw-600 font-medium">Log in</a>
                     {% endif %}
                 </div>
             </div>
@@ -101,15 +101,15 @@
             <div>
                 <h4 class="font-semibold text-white mb-3">For Pet Owners</h4>
                 <ul class="space-y-1 text-stone-400">
-                    <li><a href="{{ url_for('search') }}" class="hover:text-white">Search sitters</a></li>
-                    <li><a href="{{ url_for('register') }}" class="hover:text-white">Create account</a></li>
+                    <li><a href="{{ url_for('main.search') }}" class="hover:text-white">Search sitters</a></li>
+                    <li><a href="{{ url_for('auth.register') }}" class="hover:text-white">Create account</a></li>
                 </ul>
             </div>
             <div>
                 <h4 class="font-semibold text-white mb-3">For Sitters</h4>
                 <ul class="space-y-1 text-stone-400">
-                    <li><a href="{{ url_for('register') }}" class="hover:text-white">Become a sitter</a></li>
-                    <li><a href="{{ url_for('login') }}" class="hover:text-white">Manage availability</a></li>
+                    <li><a href="{{ url_for('auth.register') }}" class="hover:text-white">Become a sitter</a></li>
+                    <li><a href="{{ url_for('auth.login') }}" class="hover:text-white">Manage availability</a></li>
                 </ul>
             </div>
         </div>

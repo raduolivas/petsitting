@@ -11,7 +11,7 @@ env/
 dist/
 build/
 
-# Flask / SQLite
+# Flask / DB
 instance/
 *.db
 *.sqlite3
@@ -22,6 +22,10 @@ instance/
 *.swp
 .DS_Store
 
-# Logs
+# Logs / legacy
 *.log
+app_monolith_legacy.py
 app.py.bak
+
+# Env
+.env.local
