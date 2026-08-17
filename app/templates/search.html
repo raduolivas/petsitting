@@ -41,6 +41,13 @@
                 <span id="pets-btn-label">{{ pet_label }}</span>
             </button>
 
+            <button type="button" id="filters-btn"
+                    class="inline-flex items-center gap-2 border rounded-xl px-3 py-2.5 text-sm bg-white hover:border-blue-400
+                           {% if active_filter_count %}border-blue-500 ring-2 ring-blue-100{% else %}border-stone-200{% endif %}">
+                <span>⚙️</span>
+                <span>Filters{% if active_filter_count %} ({{ active_filter_count }}){% endif %}</span>
+            </button>
+
             <button type="submit" class="bg-[#1e4fd6] hover:bg-[#1a44b8] text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition">
                 Search
             </button>
@@ -51,6 +58,18 @@
             <input type="hidden" name="cats" id="field-cats" value="{{ cats or 0 }}">
             <input type="hidden" name="sizes" id="field-sizes" value="{{ sizes|join(',') if sizes else '' }}">
             <input type="hidden" name="dogs_dislike_cats" id="field-dislike" value="{{ '1' if dogs_dislike_cats else '0' }}">
+
+            <input type="hidden" name="star" id="field-star" value="{{ '1' if env.star else '0' }}">
+            <input type="hidden" name="has_house" id="field-has-house" value="{{ '1' if env.has_house else '0' }}">
+            <input type="hidden" name="has_fenced_yard" id="field-fenced" value="{{ '1' if env.has_fenced_yard else '0' }}">
+            <input type="hidden" name="no_dog" id="field-no-dog" value="{{ '1' if env.no_dog else '0' }}">
+            <input type="hidden" name="no_cat" id="field-no-cat" value="{{ '1' if env.no_cat else '0' }}">
+            <input type="hidden" name="one_client" id="field-one-client" value="{{ '1' if env.one_client else '0' }}">
+            <input type="hidden" name="no_children" id="field-no-children" value="{{ '1' if env.no_children else '0' }}">
+            <input type="hidden" name="unspayed" id="field-unspayed" value="{{ '1' if env.unspayed else '0' }}">
+            <input type="hidden" name="intact_male" id="field-intact" value="{{ '1' if env.intact_male else '0' }}">
+            <input type="hidden" name="grooming" id="field-grooming" value="{{ '1' if env.grooming else '0' }}">
+
         </form>
     </div>
 </div>
@@ -145,6 +164,54 @@
         </div>
 
         <button type="button" id="pets-save" class="w-full bg-[#1e4fd6] hover:bg-[#1a44b8] text-white font-semibold py-3 rounded-full transition">
+            Save
+        </button>
+    </div>
+</div>
+
+
+<!-- Filters panel -->
+<div id="filters-panel" class="hidden fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/20">
+    <div class="bg-white rounded-2xl shadow-2xl border border-stone-100 w-full max-w-md p-6 relative max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-bold">Filters <span id="filter-count-label" class="text-stone-400 font-normal">({% if active_filter_count %}{{ active_filter_count }}{% else %}0{% endif %})</span></h2>
+            <div class="flex items-center gap-3">
+                <button type="button" id="filters-reset" class="text-sm text-blue-600 hover:underline">Reset all</button>
+                <button type="button" id="filters-close" class="text-stone-400 hover:text-stone-600 text-xl leading-none">&times;</button>
+            </div>
+        </div>
+
+        <label class="flex items-center justify-between mb-4 py-2">
+            <span class="text-sm font-medium">Only show Star Sitters</span>
+            <input type="checkbox" id="f-star" class="rounded text-blue-600" {% if env.star %}checked{% endif %}>
+        </label>
+
+        <div class="border-t border-stone-100 pt-4 mb-4">
+            <h3 class="font-semibold text-sm mb-3">Housing conditions</h3>
+            <label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" id="f-house" class="rounded" {% if env.has_house %}checked{% endif %}> Has house (excludes apartments)</label>
+            <label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" id="f-fenced" class="rounded" {% if env.has_fenced_yard %}checked{% endif %}> Has fenced yard</label>
+        </div>
+
+        <div class="border-t border-stone-100 pt-4 mb-4">
+            <h3 class="font-semibold text-sm mb-3">Pets in the home</h3>
+            <label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" id="f-no-dog" class="rounded" {% if env.no_dog %}checked{% endif %}> Doesn’t own a dog</label>
+            <label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" id="f-no-cat" class="rounded" {% if env.no_cat %}checked{% endif %}> Doesn’t own a cat</label>
+            <label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" id="f-one-client" class="rounded" {% if env.one_client %}checked{% endif %}> Accepts only one client at a time</label>
+        </div>
+
+        <div class="border-t border-stone-100 pt-4 mb-4">
+            <h3 class="font-semibold text-sm mb-3">Children in the home</h3>
+            <label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" id="f-no-children" class="rounded" {% if env.no_children %}checked{% endif %}> Has no children</label>
+        </div>
+
+        <div class="border-t border-stone-100 pt-4 mb-6">
+            <h3 class="font-semibold text-sm mb-3">Other</h3>
+            <label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" id="f-unspayed" class="rounded" {% if env.unspayed %}checked{% endif %}> Accepts unspayed female dogs</label>
+            <label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" id="f-intact" class="rounded" {% if env.intact_male %}checked{% endif %}> Accepts non-neutered male dogs</label>
+            <label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" id="f-grooming" class="rounded" {% if env.grooming %}checked{% endif %}> Bathing / Grooming</label>
+        </div>
+
+        <button type="button" id="filters-save" class="w-full bg-[#1e4fd6] hover:bg-[#1a44b8] text-white font-semibold py-3 rounded-full transition">
             Save
         </button>
     </div>
@@ -305,5 +372,40 @@
         panel.classList.add('hidden');
         document.getElementById('search-form').submit();
     });
+
+    // ---- Filters panel ----
+    const filtersPanel = document.getElementById('filters-panel');
+    const filtersBtn = document.getElementById('filters-btn');
+    if (filtersBtn) {
+        filtersBtn.addEventListener('click', () => filtersPanel.classList.remove('hidden'));
+        document.getElementById('filters-close').addEventListener('click', () => filtersPanel.classList.add('hidden'));
+        filtersPanel.addEventListener('click', (e) => { if (e.target === filtersPanel) filtersPanel.classList.add('hidden'); });
+        document.getElementById('filters-reset').addEventListener('click', () => {
+            ['f-star','f-house','f-fenced','f-no-dog','f-no-cat','f-one-client','f-no-children','f-unspayed','f-intact','f-grooming']
+                .forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
+        });
+        document.getElementById('filters-save').addEventListener('click', () => {
+            const map = {
+                'field-star': 'f-star',
+                'field-has-house': 'f-house',
+                'field-fenced': 'f-fenced',
+                'field-no-dog': 'f-no-dog',
+                'field-no-cat': 'f-no-cat',
+                'field-one-client': 'f-one-client',
+                'field-no-children': 'f-no-children',
+                'field-unspayed': 'f-unspayed',
+                'field-intact': 'f-intact',
+                'field-grooming': 'f-grooming',
+            };
+            Object.entries(map).forEach(([fieldId, checkId]) => {
+                const c = document.getElementById(checkId);
+                const f = document.getElementById(fieldId);
+                if (c && f) f.value = c.checked ? '1' : '0';
+            });
+            filtersPanel.classList.add('hidden');
+            document.getElementById('search-form').submit();
+        });
+    }
+
 </script>
 {% endblock %}

@@ -132,6 +132,17 @@ def seed_data() -> None:
             profile = SitterProfile(user_id=user.id, **p)
             profile.avg_rating = round(4.2 + (hash(u['email']) % 8) / 10, 1)
             profile.review_count = 5 + (hash(u['email']) % 20)
+            # Environment defaults from home type
+            ht = p.get('home_type') or ''
+            profile.has_fenced_yard = bool(p.get('has_yard')) or ht in ('house', 'farm')
+            profile.owns_dog = (hash(u['email']) % 3) == 0
+            profile.owns_cat = (hash(u['email']) % 4) == 0
+            profile.has_children = (hash(u['email']) % 5) == 0
+            profile.one_client_only = ht == 'apartment'
+            profile.accepts_unspayed_female = True
+            profile.accepts_intact_male = True
+            profile.offers_grooming = (hash(u['email']) % 3) == 1
+            profile.is_star_sitter = profile.avg_rating >= 4.7
             db.session.add(profile)
 
     db.session.commit()

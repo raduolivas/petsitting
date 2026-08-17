@@ -44,14 +44,24 @@ def search():
     service = request.args.get('service', '')
     min_rating = request.args.get('min_rating', type=float)
 
-    # Pet filter params (Rover-style)
     dogs = request.args.get('dogs', default=1, type=int) or 0
     puppies = request.args.get('puppies', default=0, type=int) or 0
     cats = request.args.get('cats', default=0, type=int) or 0
-    # sizes: comma-separated small,medium,large,giant
     sizes_raw = request.args.get('sizes', '')
     sizes = [s.strip() for s in sizes_raw.split(',') if s.strip()]
     dogs_dislike_cats = request.args.get('dogs_dislike_cats') == '1'
+
+    # Environment filters (Rover-style)
+    star_only = request.args.get('star') == '1'
+    has_house = request.args.get('has_house') == '1'
+    has_fenced_yard = request.args.get('has_fenced_yard') == '1'
+    no_dog = request.args.get('no_dog') == '1'
+    no_cat = request.args.get('no_cat') == '1'
+    one_client = request.args.get('one_client') == '1'
+    no_children = request.args.get('no_children') == '1'
+    unspayed = request.args.get('unspayed') == '1'
+    intact_male = request.args.get('intact_male') == '1'
+    grooming = request.args.get('grooming') == '1'
 
     dogs = max(0, min(dogs, 10))
     puppies = max(0, min(puppies, 10))
@@ -73,21 +83,42 @@ def search():
     if min_rating:
         query = query.filter(SitterProfile.avg_rating >= min_rating)
 
-    # Capacity: sitter must accept at least this many dogs
     if total_dogs > 0:
         query = query.filter(SitterProfile.max_dogs >= total_dogs)
-
-    # Puppies
     if puppies > 0:
         query = query.filter_by(accepts_puppies=True)
-
-    # Large / giant dogs
     if 'large' in sizes or 'giant' in sizes:
         query = query.filter_by(accepts_large_dogs=True)
 
+    if star_only:
+        query = query.filter(
+            (SitterProfile.is_star_sitter.is_(True)) | (SitterProfile.avg_rating >= 4.8)
+        )
+    if has_house:
+        query = query.filter(SitterProfile.home_type.in_(['house', 'farm']))
+    if has_fenced_yard:
+        query = query.filter(
+            (SitterProfile.has_fenced_yard.is_(True)) | (SitterProfile.has_yard.is_(True))
+        )
+    if no_dog:
+        query = query.filter_by(owns_dog=False)
+    if no_cat:
+        query = query.filter_by(owns_cat=False)
+    if one_client:
+        query = query.filter_by(one_client_only=True)
+    if no_children:
+        query = query.filter_by(has_children=False)
+    if unspayed:
+        query = query.filter_by(accepts_unspayed_female=True)
+    if intact_male:
+        query = query.filter_by(accepts_intact_male=True)
+    if grooming:
+        query = query.filter_by(offers_grooming=True)
+    if dogs_dislike_cats:
+        query = query.filter_by(owns_cat=False)
+
     sitters = query.order_by(SitterProfile.avg_rating.desc()).all()
 
-    # Pet summary label for the bar
     pet_parts = []
     if dogs:
         pet_parts.append(f'{dogs} dog{"s" if dogs != 1 else ""}')
@@ -96,6 +127,20 @@ def search():
     if cats:
         pet_parts.append(f'{cats} cat{"s" if cats != 1 else ""}')
     pet_label = ', '.join(pet_parts) if pet_parts else '1 dog'
+
+    env_flags = {
+        'star': star_only,
+        'has_house': has_house,
+        'has_fenced_yard': has_fenced_yard,
+        'no_dog': no_dog,
+        'no_cat': no_cat,
+        'one_client': one_client,
+        'no_children': no_children,
+        'unspayed': unspayed,
+        'intact_male': intact_male,
+        'grooming': grooming,
+    }
+    active_filter_count = sum(1 for v in env_flags.values() if v)
 
     return render_template(
         'search.html',
@@ -110,6 +155,8 @@ def search():
         dogs_dislike_cats=dogs_dislike_cats,
         pet_label=pet_label,
         min_rating=min_rating,
+        env=env_flags,
+        active_filter_count=active_filter_count,
     )
 
 

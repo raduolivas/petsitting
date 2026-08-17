@@ -126,7 +126,24 @@
                 <input type="checkbox" name="accepts_large_dogs" {% if profile.accepts_large_dogs %}checked{% endif %} class="rounded text-paw-500">
                 <span>Accepts large dogs</span>
             </label>
-            <label class="flex items-center gap-2">
+            
+        <div class="border-t border-stone-100 pt-4">
+            <h3 class="font-semibold mb-3">Housing & environment</h3>
+            <div class="grid sm:grid-cols-2 gap-3 text-sm">
+                <label class="flex items-center gap-2"><input type="checkbox" name="has_yard" {% if profile.has_yard %}checked{% endif %} class="rounded text-paw-500"> Has yard</label>
+                <label class="flex items-center gap-2"><input type="checkbox" name="has_fenced_yard" {% if profile.has_fenced_yard %}checked{% endif %} class="rounded text-paw-500"> Has fenced yard</label>
+                <label class="flex items-center gap-2"><input type="checkbox" name="owns_dog" {% if profile.owns_dog %}checked{% endif %} class="rounded text-paw-500"> Owns a dog</label>
+                <label class="flex items-center gap-2"><input type="checkbox" name="owns_cat" {% if profile.owns_cat %}checked{% endif %} class="rounded text-paw-500"> Owns a cat</label>
+                <label class="flex items-center gap-2"><input type="checkbox" name="has_children" {% if profile.has_children %}checked{% endif %} class="rounded text-paw-500"> Has children in the home</label>
+                <label class="flex items-center gap-2"><input type="checkbox" name="one_client_only" {% if profile.one_client_only %}checked{% endif %} class="rounded text-paw-500"> Accepts only one client at a time</label>
+                <label class="flex items-center gap-2"><input type="checkbox" name="accepts_puppies" {% if profile.accepts_puppies %}checked{% endif %} class="rounded text-paw-500"> Accepts puppies</label>
+                <label class="flex items-center gap-2"><input type="checkbox" name="accepts_large_dogs" {% if profile.accepts_large_dogs %}checked{% endif %} class="rounded text-paw-500"> Accepts large dogs</label>
+                <label class="flex items-center gap-2"><input type="checkbox" name="accepts_unspayed_female" {% if profile.accepts_unspayed_female %}checked{% endif %} class="rounded text-paw-500"> Accepts unspayed female dogs</label>
+                <label class="flex items-center gap-2"><input type="checkbox" name="accepts_intact_male" {% if profile.accepts_intact_male %}checked{% endif %} class="rounded text-paw-500"> Accepts non-neutered male dogs</label>
+                <label class="flex items-center gap-2"><input type="checkbox" name="offers_grooming" {% if profile.offers_grooming %}checked{% endif %} class="rounded text-paw-500"> Bathing / grooming</label>
+            </div>
+        </div>
+<label class="flex items-center gap-2">
                 <input type="checkbox" name="is_active" {% if profile.is_active %}checked{% endif %} class="rounded text-paw-500">
                 <span>Profile is active (visible in search)</span>
             </label>

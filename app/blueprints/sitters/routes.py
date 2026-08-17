@@ -58,6 +58,14 @@ def edit_profile():
         profile.has_yard = 'has_yard' in request.form
         profile.accepts_puppies = 'accepts_puppies' in request.form
         profile.accepts_large_dogs = 'accepts_large_dogs' in request.form
+        profile.has_fenced_yard = 'has_fenced_yard' in request.form
+        profile.owns_dog = 'owns_dog' in request.form
+        profile.owns_cat = 'owns_cat' in request.form
+        profile.one_client_only = 'one_client_only' in request.form
+        profile.has_children = 'has_children' in request.form
+        profile.accepts_unspayed_female = 'accepts_unspayed_female' in request.form
+        profile.accepts_intact_male = 'accepts_intact_male' in request.form
+        profile.offers_grooming = 'offers_grooming' in request.form
         profile.availability_notes = request.form.get('availability_notes', '')
         profile.is_active = 'is_active' in request.form
 
