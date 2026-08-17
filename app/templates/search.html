@@ -2,20 +2,29 @@
 {% block title %}Find Sitters – Pawbnb{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-8">
-    <h1 class="text-2xl font-bold mb-2">Find a dog sitter</h1>
-    <p class="text-stone-500 text-sm mb-6">Search by city, country or service · Explore the map</p>
+<div class="bg-white border-b border-stone-200 sticky top-16 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-3">
+        <!-- Rover-style filter bar -->
+        <form method="GET" id="search-form" class="flex flex-wrap items-center gap-2">
+            <!-- Service -->
+            <div class="relative">
+                <select name="service" onchange="this.form.submit()"
+                        class="appearance-none border border-stone-200 rounded-xl pl-3 pr-8 py-2.5 text-sm bg-white hover:border-stone-300 focus:outline-none focus:ring-2 focus:ring-paw-300 min-w-[140px]">
+                    <option value="">All services</option>
+                    <option value="boarding" {% if service == 'boarding' %}selected{% endif %}>🏠 Boarding</option>
+                    <option value="walking" {% if service == 'walking' %}selected{% endif %}>🚶 Walking</option>
+                    <option value="daycare" {% if service == 'daycare' %}selected{% endif %}>☀️ Daycare</option>
+                </select>
+            </div>
 
-    <!-- Filters -->
-    <form method="GET" class="bg-white rounded-2xl border border-stone-100 p-4 mb-8 flex flex-wrap gap-3 items-end shadow-sm">
-        <div class="flex-1 min-w-[140px]">
-            <label class="block text-xs font-medium text-stone-500 mb-1">City</label>
-            <input type="text" name="city" value="{{ city }}" placeholder="Lisbon, Paris, Berlin..."
-                   class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-paw-300">
-        </div>
-        <div class="min-w-[130px]">
-            <label class="block text-xs font-medium text-stone-500 mb-1">Country</label>
-            <select name="country" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-paw-300">
+            <!-- Location -->
+            <div class="flex items-center border border-stone-200 rounded-xl px-3 py-2 text-sm bg-white min-w-[160px]">
+                <span class="text-green-600 mr-2">📍</span>
+                <input type="text" name="city" value="{{ city }}" placeholder="City"
+                       class="outline-none w-full min-w-0 text-sm bg-transparent">
+            </div>
+
+            <select name="country" class="border border-stone-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-paw-300">
                 <option value="">Any country</option>
                 <option value="Portugal" {% if country == 'Portugal' %}selected{% endif %}>Portugal</option>
                 <option value="Spain" {% if country == 'Spain' %}selected{% endif %}>Spain</option>
@@ -23,33 +32,132 @@
                 <option value="Italy" {% if country == 'Italy' %}selected{% endif %}>Italy</option>
                 <option value="Germany" {% if country == 'Germany' %}selected{% endif %}>Germany</option>
             </select>
-        </div>
-        <div class="min-w-[140px]">
-            <label class="block text-xs font-medium text-stone-500 mb-1">Service</label>
-            <select name="service" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-paw-300">
-                <option value="">Any service</option>
-                <option value="boarding" {% if service == 'boarding' %}selected{% endif %}>Boarding (overnight)</option>
-                <option value="walking" {% if service == 'walking' %}selected{% endif %}>Walking</option>
-                <option value="daycare" {% if service == 'daycare' %}selected{% endif %}>Daycare</option>
-            </select>
-        </div>
-        <div class="min-w-[100px]">
-            <label class="block text-xs font-medium text-stone-500 mb-1">Min rating</label>
-            <select name="min_rating" class="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-paw-300">
-                <option value="">Any</option>
-                <option value="4">4+</option>
-                <option value="4.5">4.5+</option>
-            </select>
-        </div>
-        <button type="submit" class="bg-paw-500 hover:bg-paw-600 text-white px-5 py-2 rounded-lg text-sm font-semibold transition">
-            Search
-        </button>
-    </form>
 
+            <!-- Pets button (opens panel) -->
+            <button type="button" id="pets-btn"
+                    class="inline-flex items-center gap-2 border rounded-xl px-3 py-2.5 text-sm bg-white hover:border-blue-400
+                           {% if dogs or puppies or cats %}border-blue-500 ring-2 ring-blue-100{% else %}border-stone-200{% endif %}">
+                <span class="text-green-600">🐾</span>
+                <span id="pets-btn-label">{{ pet_label }}</span>
+            </button>
+
+            <button type="submit" class="bg-[#1e4fd6] hover:bg-[#1a44b8] text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition">
+                Search
+            </button>
+
+            <!-- Hidden fields updated by the pets panel -->
+            <input type="hidden" name="dogs" id="field-dogs" value="{{ dogs if dogs is not none else 1 }}">
+            <input type="hidden" name="puppies" id="field-puppies" value="{{ puppies or 0 }}">
+            <input type="hidden" name="cats" id="field-cats" value="{{ cats or 0 }}">
+            <input type="hidden" name="sizes" id="field-sizes" value="{{ sizes|join(',') if sizes else '' }}">
+            <input type="hidden" name="dogs_dislike_cats" id="field-dislike" value="{{ '1' if dogs_dislike_cats else '0' }}">
+        </form>
+    </div>
+</div>
+
+<!-- Pets panel (popover) -->
+<div id="pets-panel" class="hidden fixed inset-0 z-50 flex items-start justify-center pt-24 px-4 bg-black/20">
+    <div class="bg-white rounded-2xl shadow-2xl border border-stone-100 w-full max-w-md p-6 relative" onclick="event.stopPropagation()">
+        <button type="button" id="pets-close" class="absolute top-3 right-3 text-stone-400 hover:text-stone-600 text-xl leading-none">&times;</button>
+
+        <h2 class="text-lg font-bold mb-1">Your pets</h2>
+        <p class="text-sm text-stone-500 mb-5">How many pets need care? This helps find sitters with the right capacity and experience.</p>
+
+        <!-- Counts -->
+        <div class="space-y-4 mb-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">🐕</span>
+                    <div>
+                        <div class="font-medium">Dogs</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button type="button" class="counter-btn w-8 h-8 rounded-full border border-stone-300 flex items-center justify-center text-lg hover:bg-stone-50" data-target="dogs" data-delta="-1">−</button>
+                    <span id="count-dogs" class="w-6 text-center font-semibold">{{ dogs if dogs is not none else 1 }}</span>
+                    <button type="button" class="counter-btn w-8 h-8 rounded-full border border-stone-300 flex items-center justify-center text-lg hover:bg-stone-50" data-target="dogs" data-delta="1">+</button>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">🐶</span>
+                    <div>
+                        <div class="font-medium">Puppies</div>
+                        <div class="text-xs text-stone-500">Younger than 1 year old</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button type="button" class="counter-btn w-8 h-8 rounded-full border border-stone-300 flex items-center justify-center text-lg hover:bg-stone-50" data-target="puppies" data-delta="-1">−</button>
+                    <span id="count-puppies" class="w-6 text-center font-semibold">{{ puppies or 0 }}</span>
+                    <button type="button" class="counter-btn w-8 h-8 rounded-full border border-stone-300 flex items-center justify-center text-lg hover:bg-stone-50" data-target="puppies" data-delta="1">+</button>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">🐱</span>
+                    <div>
+                        <div class="font-medium">Cats</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button type="button" class="counter-btn w-8 h-8 rounded-full border border-stone-300 flex items-center justify-center text-lg hover:bg-stone-50" data-target="cats" data-delta="-1">−</button>
+                    <span id="count-cats" class="w-6 text-center font-semibold">{{ cats or 0 }}</span>
+                    <button type="button" class="counter-btn w-8 h-8 rounded-full border border-stone-300 flex items-center justify-center text-lg hover:bg-stone-50" data-target="cats" data-delta="1">+</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sizes -->
+        <div class="mb-6">
+            <h3 class="font-medium mb-1">What size are your dogs?</h3>
+            <p class="text-xs text-stone-500 mb-3">Select all that apply.</p>
+            <div class="grid grid-cols-4 gap-2">
+                {% set size_opts = [
+                    ('small', 'Small', '0 – 15 lbs'),
+                    ('medium', 'Medium', '16 – 40 lbs'),
+                    ('large', 'Large', '41 – 100 lbs'),
+                    ('giant', 'Giant', '101+ lbs')
+                ] %}
+                {% for key, label, sub in size_opts %}
+                <button type="button" class="size-btn border rounded-xl p-2 text-center text-xs hover:border-blue-400 transition
+                    {% if key in sizes %}border-blue-500 bg-blue-50 ring-1 ring-blue-200{% else %}border-stone-200{% endif %}"
+                        data-size="{{ key }}">
+                    <div class="text-lg mb-1">{% if key == 'small' %}🐕{% elif key == 'medium' %}🐕{% elif key == 'large' %}🐕{% else %}🐕{% endif %}</div>
+                    <div class="font-medium">{{ label }}</div>
+                    <div class="text-stone-400">{{ sub }}</div>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Preference -->
+        <div class="mb-6 flex items-center justify-between">
+            <div>
+                <div class="font-medium text-sm">My dogs don’t like cats</div>
+                <div class="text-xs text-stone-500">We’ll show sitters with relevant experience</div>
+            </div>
+            <button type="button" id="dislike-toggle"
+                    class="relative w-11 h-6 rounded-full transition {{ 'bg-blue-500' if dogs_dislike_cats else 'bg-stone-300' }}">
+                <span class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform {{ 'translate-x-5' if dogs_dislike_cats else '' }}"></span>
+            </button>
+        </div>
+
+        <button type="button" id="pets-save" class="w-full bg-[#1e4fd6] hover:bg-[#1a44b8] text-white font-semibold py-3 rounded-full transition">
+            Save
+        </button>
+    </div>
+</div>
+
+<div class="max-w-6xl mx-auto px-4 py-8">
     <div class="grid lg:grid-cols-2 gap-6">
         <!-- List -->
         <div class="space-y-3 max-h-[620px] overflow-y-auto pr-1">
-            <p class="text-sm text-stone-500 mb-2">{{ sitters|length }} sitter{{ 's' if sitters|length != 1 else '' }} found</p>
+            <p class="text-sm text-stone-500 mb-2">
+                {{ sitters|length }} sitter{{ 's' if sitters|length != 1 else '' }} found
+                {% if pet_label %} · for {{ pet_label }}{% endif %}
+            </p>
             {% for s in sitters %}
             <a href="{{ url_for('sitters.profile', profile_id=s.id) }}"
                class="block bg-white rounded-xl border border-stone-100 p-4 hover:border-paw-300 hover:shadow-md transition group">
@@ -73,6 +181,9 @@
                             {% if s.offers_boarding %}<span class="bg-paw-50 text-paw-700 px-2 py-0.5 rounded-full">Boarding €{{ '%.0f'|format(s.price_boarding_day) }}</span>{% endif %}
                             {% if s.offers_walking %}<span class="bg-green-50 text-green-700 px-2 py-0.5 rounded-full">Walk €{{ '%.0f'|format(s.price_walking_hour) }}/h</span>{% endif %}
                             {% if s.offers_daycare %}<span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">Daycare €{{ '%.0f'|format(s.price_daycare_day) }}</span>{% endif %}
+                            <span class="bg-stone-100 text-stone-600 px-2 py-0.5 rounded-full">Up to {{ s.max_dogs }} dog{{ 's' if s.max_dogs != 1 else '' }}</span>
+                            {% if s.accepts_puppies %}<span class="bg-stone-100 text-stone-600 px-2 py-0.5 rounded-full">Puppies OK</span>{% endif %}
+                            {% if s.accepts_large_dogs %}<span class="bg-stone-100 text-stone-600 px-2 py-0.5 rounded-full">Large OK</span>{% endif %}
                         </div>
                     </div>
                 </div>
@@ -80,8 +191,8 @@
             {% else %}
             <div class="text-center py-16 text-stone-500 bg-white rounded-2xl border border-dashed border-stone-200">
                 <div class="text-4xl mb-3">🔍</div>
-                <p class="font-medium">No sitters found</p>
-                <p class="text-sm mt-1">Try a different city or country, or become the first in your area!</p>
+                <p class="font-medium">No sitters match these pet requirements</p>
+                <p class="text-sm mt-1">Try fewer dogs, different sizes, or another city.</p>
             </div>
             {% endfor %}
         </div>
@@ -96,17 +207,15 @@
 
 {% block scripts %}
 <script>
+    // ---- Map ----
     const map = L.map('map').setView([46.0, 2.0], 5);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap',
-        maxZoom: 18
+        attribution: '© OpenStreetMap', maxZoom: 18
     }).addTo(map);
 
     const pawIcon = L.divIcon({
         html: '<div style="background:#ed751a;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:16px;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.35)">🐾</div>',
-        className: '',
-        iconSize: [34, 34],
-        iconAnchor: [17, 17]
+        className: '', iconSize: [34, 34], iconAnchor: [17, 17]
     });
 
     const params = new URLSearchParams(window.location.search);
@@ -114,27 +223,87 @@
     if (params.get('city')) apiUrl += 'city=' + encodeURIComponent(params.get('city')) + '&';
     if (params.get('country')) apiUrl += 'country=' + encodeURIComponent(params.get('country')) + '&';
 
-    fetch(apiUrl)
-        .then(r => r.json())
-        .then(sitters => {
-            const bounds = [];
-            sitters.forEach(s => {
-                if (s.lat && s.lng) {
-                    const marker = L.marker([s.lat, s.lng], {icon: pawIcon}).addTo(map);
-                    marker.bindPopup(`
-                        <div style="min-width:160px">
-                            <strong>${s.name}</strong><br>
-                            <span style="color:#666">${s.city}${s.country ? ', ' + s.country : ''}</span><br>
-                            ★ ${s.rating ? s.rating.toFixed(1) : 'New'}<br>
-                            <a href="${s.url}" style="color:#ed751a;font-weight:600">View profile →</a>
-                        </div>
-                    `);
-                    bounds.push([s.lat, s.lng]);
-                }
-            });
-            if (bounds.length > 0) {
-                map.fitBounds(bounds, {padding: [40, 40], maxZoom: 12});
+    fetch(apiUrl).then(r => r.json()).then(sitters => {
+        const bounds = [];
+        sitters.forEach(s => {
+            if (s.lat && s.lng) {
+                const marker = L.marker([s.lat, s.lng], {icon: pawIcon}).addTo(map);
+                marker.bindPopup(`<strong>${s.name}</strong><br>${s.city || ''}<br>★ ${s.rating ? s.rating.toFixed(1) : 'New'}<br><a href="${s.url}">View →</a>`);
+                bounds.push([s.lat, s.lng]);
             }
         });
+        if (bounds.length) map.fitBounds(bounds, {padding: [40, 40], maxZoom: 12});
+    });
+
+    // ---- Pets panel ----
+    const panel = document.getElementById('pets-panel');
+    const petsBtn = document.getElementById('pets-btn');
+    const counts = {
+        dogs: {{ dogs if dogs is not none else 1 }},
+        puppies: {{ puppies or 0 }},
+        cats: {{ cats or 0 }}
+    };
+    let selectedSizes = new Set({{ sizes|list|tojson }});
+    let dislikeCats = {{ 'true' if dogs_dislike_cats else 'false' }};
+
+    function updateLabels() {
+        document.getElementById('count-dogs').textContent = counts.dogs;
+        document.getElementById('count-puppies').textContent = counts.puppies;
+        document.getElementById('count-cats').textContent = counts.cats;
+    }
+
+    petsBtn.addEventListener('click', () => panel.classList.remove('hidden'));
+    document.getElementById('pets-close').addEventListener('click', () => panel.classList.add('hidden'));
+    panel.addEventListener('click', (e) => { if (e.target === panel) panel.classList.add('hidden'); });
+
+    document.querySelectorAll('.counter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const key = btn.dataset.target;
+            const delta = parseInt(btn.dataset.delta, 10);
+            counts[key] = Math.max(0, Math.min(10, counts[key] + delta));
+            updateLabels();
+        });
+    });
+
+    document.querySelectorAll('.size-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const size = btn.dataset.size;
+            if (selectedSizes.has(size)) {
+                selectedSizes.delete(size);
+                btn.classList.remove('border-blue-500', 'bg-blue-50', 'ring-1', 'ring-blue-200');
+                btn.classList.add('border-stone-200');
+            } else {
+                selectedSizes.add(size);
+                btn.classList.add('border-blue-500', 'bg-blue-50', 'ring-1', 'ring-blue-200');
+                btn.classList.remove('border-stone-200');
+            }
+        });
+    });
+
+    const toggle = document.getElementById('dislike-toggle');
+    toggle.addEventListener('click', () => {
+        dislikeCats = !dislikeCats;
+        toggle.classList.toggle('bg-blue-500', dislikeCats);
+        toggle.classList.toggle('bg-stone-300', !dislikeCats);
+        toggle.querySelector('span').classList.toggle('translate-x-5', dislikeCats);
+    });
+
+    document.getElementById('pets-save').addEventListener('click', () => {
+        document.getElementById('field-dogs').value = counts.dogs;
+        document.getElementById('field-puppies').value = counts.puppies;
+        document.getElementById('field-cats').value = counts.cats;
+        document.getElementById('field-sizes').value = Array.from(selectedSizes).join(',');
+        document.getElementById('field-dislike').value = dislikeCats ? '1' : '0';
+
+        // Update button label
+        const parts = [];
+        if (counts.dogs) parts.push(counts.dogs + (counts.dogs === 1 ? ' dog' : ' dogs'));
+        if (counts.puppies) parts.push(counts.puppies === 1 ? '1 puppy' : counts.puppies + ' puppies');
+        if (counts.cats) parts.push(counts.cats + (counts.cats === 1 ? ' cat' : ' cats'));
+        document.getElementById('pets-btn-label').textContent = parts.join(', ') || 'Pets';
+
+        panel.classList.add('hidden');
+        document.getElementById('search-form').submit();
+    });
 </script>
 {% endblock %}
