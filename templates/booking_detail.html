@@ -15,7 +15,7 @@
                 <span class="inline-block text-xs font-medium px-2.5 py-1 rounded-full
                     {% if booking.status == 'confirmed' %}bg-green-100 text-green-700
                     {% elif booking.status == 'completed' %}bg-blue-100 text-blue-700
-                    {% elif booking.status == 'cancelled' %}bg-red-100 text-red-700
+                    {% elif booking.status == 'declined' or booking.status == 'cancelled' %}bg-red-100 text-red-700
                     {% else %}bg-yellow-100 text-yellow-700{% endif %}">
                     {{ booking.status }}
                 </span>
@@ -54,7 +54,23 @@
             {% endif %}
         </div>
 
+        <!-- Action buttons -->
         <div class="mt-6 flex flex-wrap gap-3">
+            {% set is_sitter = current_user.sitter_profile and current_user.sitter_profile.id == booking.sitter_id %}
+
+            {% if is_sitter and booking.status == 'pending' %}
+            <form method="POST" action="{{ url_for('accept_booking', booking_id=booking.id) }}">
+                <button type="submit" class="bg-green-500 hover:bg-green-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition">
+                    ✓ Accept request
+                </button>
+            </form>
+            <form method="POST" action="{{ url_for('decline_booking', booking_id=booking.id) }}" onsubmit="return confirm('Decline this request? The payment hold will be released.')">
+                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition">
+                    ✕ Decline (refund)
+                </button>
+            </form>
+            {% endif %}
+
             {% if booking.status == 'confirmed' %}
             <form method="POST" action="{{ url_for('complete_booking', booking_id=booking.id) }}">
                 <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
@@ -62,17 +78,29 @@
                 </button>
             </form>
             {% endif %}
+
             {% if booking.status == 'completed' and current_user.id == booking.owner_id and not booking.review %}
             <a href="{{ url_for('leave_review', booking_id=booking.id) }}" class="bg-paw-500 hover:bg-paw-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
                 Leave a review
             </a>
             {% endif %}
+
             {% if booking.payment_status == 'unpaid' and current_user.id == booking.owner_id %}
             <a href="{{ url_for('payment', booking_id=booking.id) }}" class="bg-green-500 hover:bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
-                Pay now
+                Authorize payment
             </a>
             {% endif %}
         </div>
+
+        {% if booking.status == 'pending' and booking.payment_status == 'authorized' %}
+        <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+            {% if is_sitter %}
+            This request is waiting for your decision. Accepting will capture the payment. Declining will release the hold / refund the owner.
+            {% else %}
+            Your payment is authorized and on hold. The sitter still needs to accept the request. If they decline, you will be refunded automatically.
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 
     <!-- Messaging -->
@@ -116,7 +144,6 @@
 </div>
 
 <script>
-    // Auto-scroll chat to bottom
     const box = document.getElementById('chat-box');
     if (box) box.scrollTop = box.scrollHeight;
 </script>

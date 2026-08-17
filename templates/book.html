@@ -3,11 +3,17 @@
 
 {% block content %}
 <div class="max-w-lg mx-auto px-4 py-10">
-    <div class="bg-white rounded-2xl border border-stone-100 p-8">
+    <div class="bg-white rounded-2xl border border-stone-100 p-8 shadow-sm">
         <h1 class="text-xl font-bold mb-1">Request booking</h1>
         <p class="text-stone-500 text-sm mb-6">with {{ profile.user.name }} · {{ profile.city }}</p>
 
-        <form method="POST" class="space-y-5">
+        {% if blocked_dates %}
+        <div class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+            Some dates are already booked and cannot be selected.
+        </div>
+        {% endif %}
+
+        <form method="POST" class="space-y-5" id="book-form">
             <div>
                 <label class="block text-sm font-medium mb-1">Service type</label>
                 <select name="service_type" required class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">
@@ -20,13 +26,16 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium mb-1">Start date</label>
-                    <input type="date" name="start_date" required class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">
+                    <input type="date" name="start_date" id="start_date" required
+                           class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">End date</label>
-                    <input type="date" name="end_date" class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">
+                    <input type="date" name="end_date" id="end_date"
+                           class="w-full border border-stone-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-paw-300">
                 </div>
             </div>
+            <p class="text-xs text-stone-400 -mt-3">Unavailable dates are blocked by the browser when possible. Conflicts are also checked on submit.</p>
 
             <div>
                 <label class="block text-sm font-medium mb-1">Dog’s name</label>
@@ -54,9 +63,50 @@
             </div>
 
             <button type="submit" class="w-full bg-paw-500 hover:bg-paw-600 text-white font-semibold py-3 rounded-xl transition">
-                Continue to payment
+                Continue to payment authorization
             </button>
         </form>
     </div>
 </div>
+
+<script>
+    // Block already-booked dates on the date inputs (HTML5 min/max + simple validation)
+    const blocked = {{ blocked_dates | tojson if blocked_dates else '[]' }};
+    const startInput = document.getElementById('start_date');
+    const endInput = document.getElementById('end_date');
+
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    startInput.min = today;
+    endInput.min = today;
+
+    function isBlocked(dateStr) {
+        return blocked.includes(dateStr);
+    }
+
+    function dateRangeHasBlocked(start, end) {
+        if (!start) return false;
+        const s = new Date(start);
+        const e = end ? new Date(end) : s;
+        for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+            const iso = d.toISOString().split('T')[0];
+            if (isBlocked(iso)) return true;
+        }
+        return false;
+    }
+
+    document.getElementById('book-form').addEventListener('submit', function(e) {
+        const start = startInput.value;
+        const end = endInput.value || start;
+        if (dateRangeHasBlocked(start, end)) {
+            e.preventDefault();
+            alert('One or more of the selected dates are already booked. Please choose different dates.');
+        }
+    });
+
+    startInput.addEventListener('change', function() {
+        endInput.min = this.value || today;
+        if (endInput.value && endInput.value < this.value) endInput.value = this.value;
+    });
+</script>
 {% endblock %}

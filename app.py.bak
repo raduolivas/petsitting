@@ -17,13 +17,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'pawbnb-mvp-secret-key-change-in-production')
 # Prefer instance/ folder, fall back to /tmp if needed
 _db_path = os.path.join(os.path.dirname(__file__), 'instance', 'pawbnb.db')
-try:
-    os.makedirs(os.path.dirname(_db_path), exist_ok=True)
-    # test write
-    open(_db_path + '.test', 'w').close()
-    os.remove(_db_path + '.test')
-except Exception:
-    _db_path = '/tmp/pawbnb.db'
+os.makedirs(os.path.dirname(_db_path), exist_ok=True)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + _db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -104,10 +98,9 @@ class Booking(db.Model):
     dog_size = db.Column(db.String(20))
     notes = db.Column(db.Text)
     total_price = db.Column(db.Float)
-    status = db.Column(db.String(20), default='pending')  # pending (awaiting sitter), confirmed, declined, completed, cancelled
-    payment_status = db.Column(db.String(20), default='unpaid')  # unpaid, authorized, captured, refunded
+    status = db.Column(db.String(20), default='pending')  # pending, confirmed, completed, cancelled
+    payment_status = db.Column(db.String(20), default='unpaid')  # unpaid, paid, refunded
     stripe_session_id = db.Column(db.String(200))
-    stripe_payment_intent_id = db.Column(db.String(200))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     sitter = db.relationship('SitterProfile', backref='bookings')
@@ -152,29 +145,6 @@ def can_access_booking(booking):
     if profile and booking.sitter_id == profile.id:
         return True
     return False
-
-
-
-def get_blocked_dates(sitter_profile_id):
-    """Return list of date strings (YYYY-MM-DD) that are already booked (pending or confirmed)."""
-    blocked = set()
-    bookings = Booking.query.filter(
-        Booking.sitter_id == sitter_profile_id,
-        Booking.status.in_(['pending', 'confirmed'])
-    ).all()
-    for b in bookings:
-        d = b.start_date
-        end = b.end_date or b.start_date
-        while d <= end:
-            blocked.add(d.isoformat())
-            d += timedelta(days=1)
-    return sorted(blocked)
-
-
-def dates_overlap(start1, end1, start2, end2):
-    end1 = end1 or start1
-    end2 = end2 or start2
-    return start1 <= end2 and start2 <= end1
 
 
 # ==================== ROUTES ====================
@@ -367,16 +337,6 @@ def book(profile_id):
             flash('Invalid dates.', 'error')
             return redirect(url_for('book', profile_id=profile_id))
 
-        # Check for date conflicts with existing pending/confirmed bookings
-        existing = Booking.query.filter(
-            Booking.sitter_id == profile.id,
-            Booking.status.in_(['pending', 'confirmed'])
-        ).all()
-        for ex in existing:
-            if dates_overlap(start_date, end_date, ex.start_date, ex.end_date):
-                flash('Sorry, those dates are no longer available. Please choose different dates.', 'error')
-                return redirect(url_for('book', profile_id=profile_id))
-
         days = max((end_date - start_date).days + 1, 1)
         if service_type == 'boarding':
             total = profile.price_boarding_day * days
@@ -398,17 +358,16 @@ def book(profile_id):
             dog_size=dog_size,
             notes=notes,
             total_price=total,
-            status='pending',          # waiting for sitter acceptance
+            status='pending',
             payment_status='unpaid'
         )
         db.session.add(booking)
         db.session.commit()
 
-        flash('Booking request created. Please authorize payment — the sitter will then confirm.', 'success')
+        flash('Booking created! Please complete payment.', 'success')
         return redirect(url_for('payment', booking_id=booking.id))
 
-    blocked = get_blocked_dates(profile.id)
-    return render_template('book.html', profile=profile, blocked_dates=blocked)
+    return render_template('book.html', profile=profile)
 
 
 @app.route('/payment/<int:booking_id>', methods=['GET', 'POST'])
@@ -419,47 +378,48 @@ def payment(booking_id):
         flash('Unauthorized.', 'error')
         return redirect(url_for('dashboard'))
 
-    if booking.payment_status in ('authorized', 'captured', 'paid'):
-        flash('Payment already processed for this booking.', 'info')
+    if booking.payment_status == 'paid':
+        flash('This booking is already paid.', 'info')
         return redirect(url_for('booking_detail', booking_id=booking.id))
 
     use_stripe = STRIPE_AVAILABLE and bool(app.config['STRIPE_SECRET_KEY'])
 
     if request.method == 'POST':
-        method = request.form.get('method', 'mock')
-
-        # ---- Mock / demo mode (always available) ----
-        if method == 'mock' or not use_stripe:
-            booking.payment_status = 'authorized'   # money held, not yet captured
-            booking.status = 'pending'              # still waiting for sitter
+        # Mock payment fallback (or when Stripe not configured)
+        if request.form.get('method') == 'mock' or not use_stripe:
+            booking.payment_status = 'paid'
+            booking.status = 'confirmed'
             db.session.commit()
-            flash('Payment authorized! Waiting for the sitter to accept your request.', 'success')
+            flash('Payment successful! Booking confirmed. 🎉', 'success')
             return redirect(url_for('booking_detail', booking_id=booking.id))
 
-        # ---- Real Stripe: authorize only (manual capture) ----
+        # Stripe Checkout
         try:
-            # Create a PaymentIntent that only authorizes (does not capture yet)
-            intent = stripe.PaymentIntent.create(
-                amount=int(booking.total_price * 100),
-                currency='eur',
-                capture_method='manual',
-                automatic_payment_methods={'enabled': True},
+            session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'eur',
+                        'product_data': {
+                            'name': f'Pawbnb – {booking.service_type.title()} for {booking.dog_name}',
+                            'description': f'{booking.start_date} to {booking.end_date or booking.start_date}',
+                        },
+                        'unit_amount': int(booking.total_price * 100),  # cents
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=url_for('payment_success', booking_id=booking.id, _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+                cancel_url=url_for('payment', booking_id=booking.id, _external=True),
                 metadata={'booking_id': str(booking.id)},
-                description=f'Pawbnb {booking.service_type} – {booking.dog_name}',
             )
-            booking.stripe_payment_intent_id = intent.id
-            booking.payment_status = 'authorized'
-            booking.status = 'pending'
+            booking.stripe_session_id = session.id
             db.session.commit()
-
-            # For simplicity in this MVP we treat the authorize as successful
-            # (In production you would confirm the PaymentIntent on the client with Stripe.js)
-            flash('Payment authorized via Stripe. Waiting for sitter confirmation.', 'success')
-            return redirect(url_for('booking_detail', booking_id=booking.id))
+            return redirect(session.url, code=303)
         except Exception as e:
-            flash(f'Stripe error: {str(e)}. Falling back to demo authorization.', 'error')
-            booking.payment_status = 'authorized'
-            booking.status = 'pending'
+            flash(f'Stripe error: {str(e)}. Using demo payment instead.', 'error')
+            booking.payment_status = 'paid'
+            booking.status = 'confirmed'
             db.session.commit()
             return redirect(url_for('booking_detail', booking_id=booking.id))
 
@@ -591,80 +551,6 @@ def leave_review(booking_id):
         return redirect(url_for('dashboard'))
 
     return render_template('review.html', booking=booking)
-
-
-
-@app.route('/booking/<int:booking_id>/accept', methods=['POST'])
-@login_required
-def accept_booking(booking_id):
-    """Sitter accepts the request → capture the authorized payment."""
-    booking = Booking.query.get_or_404(booking_id)
-    profile = current_user.sitter_profile
-    if not profile or booking.sitter_id != profile.id:
-        flash('Unauthorized.', 'error')
-        return redirect(url_for('dashboard'))
-
-    if booking.status != 'pending':
-        flash('This booking is no longer pending.', 'info')
-        return redirect(url_for('booking_detail', booking_id=booking.id))
-
-    # Capture Stripe PaymentIntent if present
-    if booking.stripe_payment_intent_id and STRIPE_AVAILABLE and app.config['STRIPE_SECRET_KEY']:
-        try:
-            stripe.PaymentIntent.capture(booking.stripe_payment_intent_id)
-            booking.payment_status = 'captured'
-        except Exception as e:
-            flash(f'Could not capture payment: {e}', 'error')
-            return redirect(url_for('booking_detail', booking_id=booking.id))
-    else:
-        # Demo mode
-        booking.payment_status = 'captured'
-
-    booking.status = 'confirmed'
-    db.session.commit()
-    flash('You accepted the booking. Payment has been captured. 🎉', 'success')
-    return redirect(url_for('booking_detail', booking_id=booking.id))
-
-
-@app.route('/booking/<int:booking_id>/decline', methods=['POST'])
-@login_required
-def decline_booking(booking_id):
-    """Sitter declines → cancel authorization / refund the payment."""
-    booking = Booking.query.get_or_404(booking_id)
-    profile = current_user.sitter_profile
-    if not profile or booking.sitter_id != profile.id:
-        flash('Unauthorized.', 'error')
-        return redirect(url_for('dashboard'))
-
-    if booking.status != 'pending':
-        flash('This booking is no longer pending.', 'info')
-        return redirect(url_for('booking_detail', booking_id=booking.id))
-
-    # Cancel the PaymentIntent (releases the hold / refunds if already captured)
-    if booking.stripe_payment_intent_id and STRIPE_AVAILABLE and app.config['STRIPE_SECRET_KEY']:
-        try:
-            intent = stripe.PaymentIntent.retrieve(booking.stripe_payment_intent_id)
-            if intent.status == 'requires_capture':
-                stripe.PaymentIntent.cancel(booking.stripe_payment_intent_id)
-            elif intent.status == 'succeeded':
-                stripe.Refund.create(payment_intent=booking.stripe_payment_intent_id)
-            booking.payment_status = 'refunded'
-        except Exception as e:
-            flash(f'Refund/cancel issue: {e}. Marked as declined anyway.', 'error')
-            booking.payment_status = 'refunded'
-    else:
-        booking.payment_status = 'refunded'
-
-    booking.status = 'declined'
-    db.session.commit()
-    flash('You declined the request. The payment authorization has been released / refunded.', 'info')
-    return redirect(url_for('booking_detail', booking_id=booking.id))
-
-
-@app.route('/api/sitter/<int:profile_id>/blocked-dates')
-def api_blocked_dates(profile_id):
-    """JSON list of dates that cannot be selected for this sitter."""
-    return jsonify(get_blocked_dates(profile_id))
 
 
 @app.route('/api/sitters')
