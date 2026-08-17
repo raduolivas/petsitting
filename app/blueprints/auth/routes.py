@@ -1,11 +1,12 @@
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from app.blueprints.auth import bp
-from app.extensions import db
+from app.extensions import db, limiter
 from app.models import User, SitterProfile
 
 
 @bp.route('/register', methods=['GET', 'POST'])
+@limiter.limit('10 per minute')
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
@@ -49,6 +50,7 @@ def register():
 
 
 @bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit('20 per minute')
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))

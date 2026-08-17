@@ -1,8 +1,11 @@
 import os
 import logging
 from flask import Flask
+from dotenv import load_dotenv
+
+load_dotenv()
 from app.config import config_by_name
-from app.extensions import db, login_manager, migrate, csrf
+from app.extensions import db, login_manager, migrate, csrf, limiter
 
 
 def create_app(config_name: str | None = None) -> Flask:
@@ -30,12 +33,11 @@ def create_app(config_name: str | None = None) -> Flask:
     except OSError:
         pass
 
-    # Fix sqlite relative path when using DevelopmentConfig default
+    # Fix relative sqlite file paths (do not touch :memory:)
     uri = app.config.get('SQLALCHEMY_DATABASE_URI') or ''
-    if uri.startswith('sqlite:///') and not uri.startswith('sqlite:////'):
-        # Make absolute under instance
+    if uri.startswith('sqlite:///') and not uri.startswith('sqlite:////') and ':memory:' not in uri:
         db_name = uri.replace('sqlite:///', '')
-        if not os.path.isabs(db_name):
+        if db_name and not os.path.isabs(db_name):
             abs_path = os.path.join(app.instance_path, os.path.basename(db_name) or 'pawbnb.db')
             app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + abs_path
 
@@ -44,6 +46,7 @@ def create_app(config_name: str | None = None) -> Flask:
     login_manager.init_app(app)
     migrate.init_app(app, db)
     csrf.init_app(app)
+    limiter.init_app(app)
 
     # Security headers
     if app.config.get('TALISMAN_ENABLED'):
@@ -66,9 +69,11 @@ def create_app(config_name: str | None = None) -> Flask:
             pass
 
     # Logging
-    if not app.debug:
-        logging.basicConfig(level=logging.INFO)
-        app.logger.setLevel(logging.INFO)
+    logging.basicConfig(
+        level=logging.DEBUG if app.debug else logging.INFO,
+        format='%(asctime)s %(levelname)s [%(name)s] %(message)s',
+    )
+    app.logger.setLevel(logging.DEBUG if app.debug else logging.INFO)
 
     # Blueprints
     from app.blueprints.auth import bp as auth_bp

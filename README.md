@@ -93,3 +93,26 @@ See `.env.example`. Required in production:
 - `SECRET_KEY`
 - `DATABASE_URL` (PostgreSQL)
 - `FLASK_ENV=production`
+
+
+## Tests & CI
+
+```bash
+pip install -r requirements.txt
+FLASK_ENV=testing SECRET_KEY=test pytest
+# or
+make test
+```
+
+GitHub Actions runs tests on push/PR to `main` (Python 3.11 and 3.12).
+
+## Makefile shortcuts
+
+```bash
+make install   # venv + deps
+make migrate
+make seed
+make run
+make test
+make docker-up
+```
