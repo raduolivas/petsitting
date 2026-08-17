@@ -162,8 +162,8 @@
             <a href="{{ url_for('sitters.profile', profile_id=s.id) }}"
                class="block bg-white rounded-xl border border-stone-100 p-4 hover:border-paw-300 hover:shadow-md transition group">
                 <div class="flex gap-4">
-                    <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-paw-100 to-orange-100 flex items-center justify-center text-2xl flex-shrink-0">
-                        🏡
+                    <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-paw-100 to-orange-100 flex items-center justify-center text-2xl flex-shrink-0 overflow-hidden">
+                        {% if s.photo_url %}<img src="{{ s.photo_url }}" alt="" class="w-full h-full object-cover">{% else %}🏡{% endif %}
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex justify-between items-start gap-2">

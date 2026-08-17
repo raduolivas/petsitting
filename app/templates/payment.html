@@ -1,15 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Authorize Payment – Pawbnb{% endblock %}
+{% block title %}Authorize payment – Pawbnb{% endblock %}
 
 {% block content %}
-<div class="max-w-md mx-auto px-4 py-12">
-    <div class="bg-white rounded-2xl border border-stone-100 p-8 shadow-sm">
-        <h1 class="text-xl font-bold mb-2">Authorize payment</h1>
+<div class="max-w-md mx-auto px-4 py-10">
+    <div class="bg-white rounded-2xl border border-stone-100 shadow-sm p-6">
+        <h1 class="text-xl font-bold mb-1">Authorize payment</h1>
         <p class="text-sm text-stone-500 mb-6">
-            Your card will be authorized (held) now. The sitter must accept the request before the payment is captured. If they decline, the hold is released and you are not charged.
+            Your card will be authorized (held) now. The charge is only captured if the sitter accepts.
         </p>
 
-        <div class="bg-stone-50 rounded-xl p-4 mb-6 space-y-2 text-sm">
+        <div class="space-y-2 text-sm mb-6 bg-stone-50 rounded-xl p-4">
             <div class="flex justify-between">
                 <span class="text-stone-500">Service</span>
                 <span class="font-medium capitalize">{{ booking.service_type }}</span>
@@ -20,7 +20,7 @@
             </div>
             <div class="flex justify-between">
                 <span class="text-stone-500">Dog</span>
-                <span>{{ booking.dog_name }}</span>
+                <span>{{ booking.dog_name or '—' }}</span>
             </div>
             <div class="flex justify-between text-base font-semibold pt-2 border-t border-stone-200">
                 <span>Total (held)</span>
@@ -29,14 +29,14 @@
         </div>
 
         {% if use_stripe %}
-        <form method="POST" class="mb-4">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="method" value="stripe">
-            <button type="submit" class="w-full bg-[#635BFF] hover:bg-[#5851e6] text-white font-semibold py-3 rounded-xl transition">
-                Authorize with Stripe
-            </button>
-        </form>
-        <p class="text-xs text-center text-stone-400 mb-4">or</p>
+        <div id="payment-element" class="mb-4"></div>
+        <div id="payment-message" class="hidden text-sm text-red-600 mb-3"></div>
+        <button id="submit-payment" type="button"
+                class="w-full bg-[#635BFF] hover:bg-[#5851e6] text-white font-semibold py-3 rounded-xl transition disabled:opacity-60">
+            Pay €{{ '%.2f'|format(booking.total_price) }}
+        </button>
+        <p class="text-xs text-center text-stone-400 mt-3 mb-4">Secured by Stripe · card is authorized, not charged until accept</p>
+        <p class="text-xs text-center text-stone-400 mb-2">or</p>
         {% endif %}
 
         <form method="POST">
@@ -46,10 +46,60 @@
                 Authorize €{{ '%.2f'|format(booking.total_price) }} (Demo)
             </button>
         </form>
-
-        <p class="text-xs text-stone-400 text-center mt-4">
-            Demo mode simulates an authorization. With real Stripe keys the amount is held until the sitter accepts (then captured) or declines (then released/refunded).
-        </p>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{% if use_stripe %}
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+(function () {
+    const stripe = Stripe({{ stripe_pk|tojson }});
+    const clientSecret = {{ client_secret|tojson }};
+    const elements = stripe.elements({ clientSecret });
+    const paymentElement = elements.create('payment');
+    paymentElement.mount('#payment-element');
+
+    const btn = document.getElementById('submit-payment');
+    const msg = document.getElementById('payment-message');
+
+    btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        msg.classList.add('hidden');
+        const { error, paymentIntent } = await stripe.confirmPayment({
+            elements,
+            redirect: 'if_required',
+            confirmParams: {
+                return_url: window.location.origin + {{ url_for('bookings.detail', booking_id=booking.id)|tojson }},
+            },
+        });
+        if (error) {
+            msg.textContent = error.message || 'Payment failed';
+            msg.classList.remove('hidden');
+            btn.disabled = false;
+            return;
+        }
+        // Authorized (requires_capture) or succeeded
+        const piId = paymentIntent && paymentIntent.id;
+        const res = await fetch({{ url_for('bookings.payment_confirm', booking_id=booking.id)|tojson }}, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': {{ csrf_token()|tojson }},
+            },
+            body: JSON.stringify({ payment_intent_id: piId }),
+        });
+        const data = await res.json();
+        if (data.ok && data.redirect) {
+            window.location = data.redirect;
+        } else {
+            msg.textContent = data.error || 'Could not confirm booking';
+            msg.classList.remove('hidden');
+            btn.disabled = false;
+        }
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}

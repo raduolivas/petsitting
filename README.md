@@ -116,3 +116,30 @@ make run
 make test
 make docker-up
 ```
+
+
+## Payments (Stripe)
+
+1. Set `STRIPE_SECRET_KEY` and `STRIPE_PUBLISHABLE_KEY` (test mode is fine).
+2. For webhooks locally: `stripe listen --forward-to localhost:5000/webhooks/stripe` and set `STRIPE_WEBHOOK_SECRET`.
+3. Payment Element authorizes the card (`capture_method=manual`).
+4. Sitter **Accept** → capture · **Decline** → cancel/refund.
+
+Without Stripe keys, the demo "Authorize" button still works.
+
+## Email
+
+Configure SMTP via `MAIL_*` env vars. With empty `MAIL_SERVER` (or `MAIL_SUPPRESS_SEND=1`), emails are printed to the console.
+
+## Image uploads
+
+Sitters can upload a profile photo on **Edit profile**. Files are stored under `app/static/uploads/sitters/`.
+
+## Redis rate limits
+
+```bash
+# docker compose includes Redis
+RATELIMIT_STORAGE_URI=redis://localhost:6379/0
+```
+
+In development the default is in-memory storage.

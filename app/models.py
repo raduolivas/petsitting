@@ -13,6 +13,7 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(20), nullable=False)  # 'owner' or 'sitter'
     phone = db.Column(db.String(30))
+    avatar_url = db.Column(db.String(300))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     sitter_profile = db.relationship(
@@ -63,6 +64,7 @@ class SitterProfile(db.Model):
     accepts_large_dogs = db.Column(db.Boolean, default=True)
     availability_notes = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True, index=True)
+    photo_url = db.Column(db.String(300))
     avg_rating = db.Column(db.Float, default=0.0)
     review_count = db.Column(db.Integer, default=0)
 

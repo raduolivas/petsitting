@@ -15,6 +15,16 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   web:
     build: .
     ports:
@@ -23,11 +33,23 @@ services:
       FLASK_ENV: production
       SECRET_KEY: change-me-to-a-long-random-string
       DATABASE_URL: postgresql+psycopg2://pawbnb:pawbnb@db:5432/pawbnb
+      RATELIMIT_STORAGE_URI: redis://redis:6379/0
       FORCE_HTTPS: "0"
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      MAIL_SERVER: ${MAIL_SERVER:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_DEFAULT_SENDER: ${MAIL_DEFAULT_SENDER:-Pawbnb <noreply@pawbnb.local>}
+      MAIL_SUPPRESS_SEND: ${MAIL_SUPPRESS_SEND:-0}
+    volumes:
+      - uploads:/app/app/static/uploads
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     command: >
       sh -c "flask --app wsgi:app db upgrade &&
@@ -36,3 +58,4 @@ services:
 
 volumes:
   pgdata:
+  uploads:

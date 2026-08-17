@@ -1,8 +1,8 @@
 from datetime import datetime
-from flask import render_template, request, redirect, url_for, flash, current_app, abort
+from flask import render_template, request, redirect, url_for, flash, current_app, abort, jsonify
 from flask_login import login_required, current_user
 from app.blueprints.bookings import bp
-from app.extensions import db
+from app.extensions import db, csrf
 from app.models import SitterProfile, Booking, Review, Message
 from app.services.booking_service import (
     get_blocked_dates,
@@ -10,16 +10,8 @@ from app.services.booking_service import (
     can_access_booking,
     recalculate_sitter_rating,
 )
-
-try:
-    import stripe
-    STRIPE_AVAILABLE = True
-except ImportError:
-    STRIPE_AVAILABLE = False
-
-
-def _stripe_configured() -> bool:
-    return STRIPE_AVAILABLE and bool(current_app.config.get('STRIPE_SECRET_KEY'))
+from app.services import email_service
+from app.services import stripe_service
 
 
 @bp.route('/book/<int:profile_id>', methods=['GET', 'POST'])
@@ -90,10 +82,7 @@ def book(profile_id):
         db.session.add(booking)
         db.session.commit()
 
-        flash(
-            'Booking request created. Please authorize payment — the sitter will then confirm.',
-            'success',
-        )
+        flash('Booking request created. Please authorize payment.', 'success')
         return redirect(url_for('bookings.payment', booking_id=booking.id))
 
     blocked = get_blocked_dates(profile.id)
@@ -112,81 +101,114 @@ def payment(booking_id):
         flash('Payment already processed for this booking.', 'info')
         return redirect(url_for('bookings.detail', booking_id=booking.id))
 
-    use_stripe = _stripe_configured()
+    use_stripe = stripe_service.is_configured()
+    client_secret = None
 
-    if request.method == 'POST':
-        method = request.form.get('method', 'mock')
-
-        if method == 'mock' or not use_stripe:
-            booking.payment_status = 'authorized'
-            booking.status = 'pending'
-            db.session.commit()
-            flash(
-                'Payment authorized! Waiting for the sitter to accept your request.',
-                'success',
-            )
-            return redirect(url_for('bookings.detail', booking_id=booking.id))
-
+    # Demo / mock authorization
+    if request.method == 'POST' and request.form.get('method') == 'mock':
+        booking.payment_status = 'authorized'
+        booking.status = 'pending'
+        db.session.commit()
         try:
-            stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
-            intent = stripe.PaymentIntent.create(
-                amount=int(booking.total_price * 100),
-                currency='eur',
-                capture_method='manual',
-                automatic_payment_methods={'enabled': True},
-                metadata={'booking_id': str(booking.id)},
-                description=f'Pawbnb {booking.service_type} – {booking.dog_name}',
-            )
-            booking.stripe_payment_intent_id = intent.id
-            booking.payment_status = 'authorized'
-            booking.status = 'pending'
+            email_service.notify_booking_requested(booking)
+        except Exception:
+            current_app.logger.exception('email notify failed')
+        flash('Payment authorized (demo)! Waiting for the sitter to accept.', 'success')
+        return redirect(url_for('bookings.detail', booking_id=booking.id))
+
+    # Create PaymentIntent for Payment Element
+    if use_stripe and not booking.stripe_payment_intent_id:
+        try:
+            result = stripe_service.create_payment_intent(booking)
+            booking.stripe_payment_intent_id = result['id']
             db.session.commit()
-            flash('Payment authorized via Stripe. Waiting for sitter confirmation.', 'success')
-            return redirect(url_for('bookings.detail', booking_id=booking.id))
+            client_secret = result['client_secret']
         except Exception as e:
-            flash(f'Stripe error: {e}. Falling back to demo authorization.', 'error')
-            booking.payment_status = 'authorized'
-            booking.status = 'pending'
-            db.session.commit()
-            return redirect(url_for('bookings.detail', booking_id=booking.id))
+            current_app.logger.exception('Stripe PI create failed')
+            flash(f'Could not start Stripe payment: {e}', 'error')
+            use_stripe = False
+    elif use_stripe and booking.stripe_payment_intent_id:
+        # Re-fetch client secret if page reloaded
+        try:
+            import stripe
+            stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
+            intent = stripe.PaymentIntent.retrieve(booking.stripe_payment_intent_id)
+            client_secret = intent.client_secret
+        except Exception:
+            client_secret = None
 
     return render_template(
         'payment.html',
         booking=booking,
-        use_stripe=use_stripe,
+        use_stripe=use_stripe and bool(client_secret),
+        client_secret=client_secret,
         stripe_pk=current_app.config.get('STRIPE_PUBLISHABLE_KEY', ''),
     )
 
 
-@bp.route('/payment/success/<int:booking_id>')
+@bp.route('/payment/<int:booking_id>/confirm', methods=['POST'])
 @login_required
-def payment_success(booking_id):
+def payment_confirm(booking_id):
+    """Called after Payment Element succeeds client-side."""
     booking = Booking.query.get_or_404(booking_id)
     if booking.owner_id != current_user.id:
         abort(403)
 
-    session_id = request.args.get('session_id')
-    if session_id and _stripe_configured():
-        try:
-            stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
-            session = stripe.checkout.Session.retrieve(session_id)
-            if session.payment_status == 'paid':
-                booking.payment_status = 'captured'
-                booking.status = 'confirmed'
-                booking.stripe_session_id = session_id
-                db.session.commit()
-                flash('Payment successful via Stripe! Booking confirmed. 🎉', 'success')
-            else:
-                flash('Payment not completed.', 'error')
-        except Exception:
-            flash('Could not verify Stripe payment.', 'error')
-    else:
+    data = request.get_json(silent=True) or {}
+    pi_id = data.get('payment_intent_id') or booking.stripe_payment_intent_id
+
+    if pi_id:
+        booking.stripe_payment_intent_id = pi_id
         booking.payment_status = 'authorized'
         booking.status = 'pending'
         db.session.commit()
-        flash('Payment authorized. Waiting for sitter confirmation.', 'success')
+        try:
+            email_service.notify_booking_requested(booking)
+        except Exception:
+            current_app.logger.exception('email notify failed')
+        return jsonify({'ok': True, 'redirect': url_for('bookings.detail', booking_id=booking.id)})
 
-    return redirect(url_for('bookings.detail', booking_id=booking.id))
+    return jsonify({'ok': False, 'error': 'missing payment_intent'}), 400
+
+
+@bp.route('/webhooks/stripe', methods=['POST'])
+@csrf.exempt
+def stripe_webhook():
+    payload = request.get_data()
+    sig = request.headers.get('Stripe-Signature', '')
+    try:
+        event = stripe_service.construct_webhook_event(payload, sig)
+    except Exception as e:
+        current_app.logger.warning('Webhook signature error: %s', e)
+        return jsonify({'error': str(e)}), 400
+
+    etype = event['type']
+    obj = event['data']['object']
+    current_app.logger.info('Stripe webhook: %s', etype)
+
+    if etype in ('payment_intent.amount_capturable_updated', 'payment_intent.succeeded'):
+        pi_id = obj.get('id')
+        booking = Booking.query.filter_by(stripe_payment_intent_id=pi_id).first()
+        if booking:
+            if etype == 'payment_intent.amount_capturable_updated' and booking.payment_status == 'unpaid':
+                booking.payment_status = 'authorized'
+                booking.status = 'pending'
+                db.session.commit()
+            elif etype == 'payment_intent.succeeded':
+                booking.payment_status = 'captured'
+                if booking.status == 'pending':
+                    booking.status = 'confirmed'
+                db.session.commit()
+
+    elif etype == 'payment_intent.canceled':
+        pi_id = obj.get('id')
+        booking = Booking.query.filter_by(stripe_payment_intent_id=pi_id).first()
+        if booking and booking.status == 'pending':
+            booking.payment_status = 'refunded'
+            booking.status = 'declined'
+            db.session.commit()
+
+    return jsonify({'received': True}), 200
 
 
 @bp.route('/booking/<int:booking_id>')
@@ -242,10 +264,9 @@ def accept(booking_id):
         flash('This booking is no longer pending.', 'info')
         return redirect(url_for('bookings.detail', booking_id=booking.id))
 
-    if booking.stripe_payment_intent_id and _stripe_configured():
+    if booking.stripe_payment_intent_id and stripe_service.is_configured():
         try:
-            stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
-            stripe.PaymentIntent.capture(booking.stripe_payment_intent_id)
+            stripe_service.capture_payment_intent(booking.stripe_payment_intent_id)
             booking.payment_status = 'captured'
         except Exception as e:
             flash(f'Could not capture payment: {e}', 'error')
@@ -255,7 +276,11 @@ def accept(booking_id):
 
     booking.status = 'confirmed'
     db.session.commit()
-    flash('You accepted the booking. Payment has been captured. 🎉', 'success')
+    try:
+        email_service.notify_booking_accepted(booking)
+    except Exception:
+        current_app.logger.exception('email notify failed')
+    flash('You accepted the booking. Payment has been captured.', 'success')
     return redirect(url_for('bookings.detail', booking_id=booking.id))
 
 
@@ -272,14 +297,9 @@ def decline(booking_id):
         flash('This booking is no longer pending.', 'info')
         return redirect(url_for('bookings.detail', booking_id=booking.id))
 
-    if booking.stripe_payment_intent_id and _stripe_configured():
+    if booking.stripe_payment_intent_id and stripe_service.is_configured():
         try:
-            stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
-            intent = stripe.PaymentIntent.retrieve(booking.stripe_payment_intent_id)
-            if intent.status == 'requires_capture':
-                stripe.PaymentIntent.cancel(booking.stripe_payment_intent_id)
-            elif intent.status == 'succeeded':
-                stripe.Refund.create(payment_intent=booking.stripe_payment_intent_id)
+            stripe_service.cancel_or_refund(booking.stripe_payment_intent_id)
             booking.payment_status = 'refunded'
         except Exception as e:
             flash(f'Refund/cancel issue: {e}. Marked as declined anyway.', 'error')
@@ -289,10 +309,11 @@ def decline(booking_id):
 
     booking.status = 'declined'
     db.session.commit()
-    flash(
-        'You declined the request. The payment authorization has been released / refunded.',
-        'info',
-    )
+    try:
+        email_service.notify_booking_declined(booking)
+    except Exception:
+        current_app.logger.exception('email notify failed')
+    flash('You declined the request. The payment authorization has been released.', 'info')
     return redirect(url_for('bookings.detail', booking_id=booking.id))
 
 

@@ -29,3 +29,10 @@ app.py.bak
 
 # Env
 .env.local
+
+# User uploads (keep directory structure)
+app/static/uploads/sitters/*
+!app/static/uploads/sitters/.gitkeep
+app/static/uploads/*
+!app/static/uploads/.gitkeep
+!app/static/uploads/sitters/

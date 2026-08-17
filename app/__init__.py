@@ -41,6 +41,16 @@ def create_app(config_name: str | None = None) -> Flask:
             abs_path = os.path.join(app.instance_path, os.path.basename(db_name) or 'pawbnb.db')
             app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + abs_path
 
+    # Uploads default path
+    if not app.config.get('UPLOAD_FOLDER'):
+        app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
+
+    # Rate limit storage (Redis in production when RATELIMIT_STORAGE_URI is set)
+    app.config.setdefault(
+        'RATELIMIT_STORAGE_URI',
+        app.config.get('RATELIMIT_STORAGE_URI') or 'memory://',
+    )
+
     # Extensions
     db.init_app(app)
     login_manager.init_app(app)

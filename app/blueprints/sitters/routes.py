@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from app.blueprints.sitters import bp
 from app.extensions import db
 from app.models import SitterProfile, Review
+from app.services.upload_service import save_sitter_photo
 
 
 @bp.route('/sitter/<int:profile_id>')
@@ -59,6 +60,16 @@ def edit_profile():
         profile.accepts_large_dogs = 'accepts_large_dogs' in request.form
         profile.availability_notes = request.form.get('availability_notes', '')
         profile.is_active = 'is_active' in request.form
+
+        photo = request.files.get('photo')
+        if photo and photo.filename:
+            try:
+                url = save_sitter_photo(photo, current_user.id)
+                if url:
+                    profile.photo_url = url
+            except ValueError as e:
+                flash(str(e), 'error')
+                return redirect(url_for('sitters.edit_profile'))
 
         db.session.commit()
         flash('Profile updated successfully!', 'success')

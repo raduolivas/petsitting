@@ -19,10 +19,26 @@ class Config:
     STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
     STRIPE_PUBLISHABLE_KEY = os.environ.get('STRIPE_PUBLISHABLE_KEY', '')
     STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+    STRIPE_CURRENCY = os.environ.get('STRIPE_CURRENCY', 'eur')
+
+    # Email
+    MAIL_SERVER = os.environ.get('MAIL_SERVER', '')
+    MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', '1') == '1'
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME', '')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', '')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER', 'Pawbnb <noreply@pawbnb.local>')
+    MAIL_SUPPRESS_SEND = os.environ.get('MAIL_SUPPRESS_SEND', '0') == '1'
+
+    # Uploads
+    MAX_CONTENT_LENGTH = 8 * 1024 * 1024  # 8 MB
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', '')
+
+    # Rate limiting storage (memory | redis://...)
+    RATELIMIT_STORAGE_URI = os.environ.get('RATELIMIT_STORAGE_URI', 'memory://')
 
     TALISMAN_ENABLED = True
     FORCE_HTTPS = False
-    MAX_CONTENT_LENGTH = 8 * 1024 * 1024
     WTF_CSRF_ENABLED = True
 
 
@@ -36,6 +52,7 @@ class DevelopmentConfig(Config):
     )
     TALISMAN_ENABLED = False
     FORCE_HTTPS = False
+    MAIL_SUPPRESS_SEND = os.environ.get('MAIL_SUPPRESS_SEND', '1') == '1'
 
 
 class ProductionConfig(Config):
@@ -67,6 +84,8 @@ class TestingConfig(Config):
     WTF_CSRF_ENABLED = False
     TALISMAN_ENABLED = False
     SECRET_KEY = 'test-secret'
+    MAIL_SUPPRESS_SEND = True
+    RATELIMIT_STORAGE_URI = 'memory://'
 
 
 config_by_name = {
